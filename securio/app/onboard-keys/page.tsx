@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { generateAsapKeyPair, encryptWithPassphrase } from '@/lib/client-crypto';
+import { generateAsapKeyPair, encryptWithPassphrase } from '@/lib/client/client-crypto';
 import { completeKeySetup } from '@/app/actions/user';
 import { LockClosedIcon, ShieldCheckIcon, CheckIcon } from '@heroicons/react/24/outline';
 

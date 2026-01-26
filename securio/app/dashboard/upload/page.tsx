@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { uploadEncryptedFile } from '@/app/actions/file';
-import { generateAesKey, encryptFileWithAes } from '@/lib/client-crypto';
+import { generateAesKey, encryptFileWithAes } from '@/lib/client/client-crypto';
 import Link from 'next/link';
 import { ArrowUpTrayIcon, DocumentCheckIcon, XCircleIcon } from '@heroicons/react/24/outline';
 

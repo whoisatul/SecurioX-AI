@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { decryptWithPassphrase, decryptFileWithAes } from '@/lib/client-crypto';
+import { decryptWithPassphrase, decryptFileWithAes } from '@/lib/client/client-crypto';
 import { performKeyDecryption } from '@/app/actions/decrypt';
 import { saveAs } from 'file-saver';
 

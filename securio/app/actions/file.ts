@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 // Import the renamed function
-import { encryptAesKeyWithAsap } from '@/lib/asap-crypto-js';
+import { encryptAesKeyWithAsap } from '@/lib/shared/asap-crypto-js';
 import { revalidatePath } from "next/cache";
 
 // Instantiate Prisma Client

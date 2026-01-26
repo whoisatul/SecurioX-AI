@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 // Import the renamed function
-import { decryptAesKeyWithAsap } from '@/lib/asap-crypto-js';
+import { decryptAesKeyWithAsap } from '@/lib/shared/asap-crypto-js';
 
 const prisma = new PrismaClient();
 
