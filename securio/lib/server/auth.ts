@@ -34,25 +34,14 @@ export const authOptions: NextAuthOptions = {
           throw new Error("UserNotFound");
         }
 
-        const valid = await compare(
-          credentials.password,
-          user.password
-        );
-
+        const valid = await compare(credentials.password, user.password);
         if (!valid) throw new Error("InvalidPassword");
 
         if (user.isMfaEnabled) {
-          if (!credentials.mfaCode)
-            throw new Error("MfaRequired");
+          if (!credentials.mfaCode) throw new Error("MfaRequired");
+          if (!user.mfaSecret) throw new Error("MfaConfigError");
 
-          if (!user.mfaSecret)
-            throw new Error("MfaConfigError");
-
-          const ok = verifyMfaCode(
-            user.mfaSecret,
-            credentials.mfaCode
-          );
-
+          const ok = verifyMfaCode(user.mfaSecret, credentials.mfaCode);
           if (!ok) throw new Error("InvalidMfaCode");
         }
 
@@ -62,8 +51,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           isMfaEnabled: user.isMfaEnabled,
           hasEncryptionKeys:
-            !!user.publicKey &&
-            !!user.encryptedPrivateKey,
+            !!user.publicKey && !!user.encryptedPrivateKey,
         };
       },
     }),
@@ -89,8 +77,7 @@ export const authOptions: NextAuthOptions = {
       if (dbUser) {
         token.isMfaEnabled = dbUser.isMfaEnabled;
         token.hasEncryptionKeys =
-          !!dbUser.publicKey &&
-          !!dbUser.encryptedPrivateKey;
+          !!dbUser.publicKey && !!dbUser.encryptedPrivateKey;
       }
 
       return token;
@@ -99,12 +86,9 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
-        (session.user as any).isMfaEnabled =
-          token.isMfaEnabled;
-        (session.user as any).hasEncryptionKeys =
-          token.hasEncryptionKeys;
+        (session.user as any).isMfaEnabled = token.isMfaEnabled;
+        (session.user as any).hasEncryptionKeys = token.hasEncryptionKeys;
       }
-
       return session;
     },
   },
@@ -112,6 +96,4 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-
-  debug: process.env.NODE_ENV === "development",
 };

@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/server/auth";
 import Link from "next/link";
 import { PrismaClient } from "@prisma/client";
 import { ShieldCheckIcon, KeyIcon, ClockIcon } from "@heroicons/react/24/outline";

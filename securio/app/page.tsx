@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/server/auth';
+import { authOptions } from "@/lib/server/auth";
 import { LockClosedIcon, BoltIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 export default async function Home() {
