@@ -2,7 +2,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/server/auth";
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 // Import the renamed function
 import { encryptAesKeyWithAsap } from '@/lib/shared/asap-crypto-js';
