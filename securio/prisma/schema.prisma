@@ -29,6 +29,7 @@ model User {
   
   // Relations
   files            EncryptedFile[]
+  chatSessions     ChatSession[]   // AI chat history
   sessions         Session[] // Required by NextAuth.js
   accounts         Account[] // Required by NextAuth.js
 }
@@ -43,8 +44,14 @@ model EncryptedFile {
   uploadDate       DateTime  @default(now())
   cloudinaryPublicId String  @unique
 
-  // The AES key for the file, encrypted by the user's Asap Public Key
+  // The AES key for the file, encrypted by the user's RSA Public Key
   encryptedAesKey  String    @db.Text
+
+  // Semantic search: AES-GCM encrypted Gemini embedding (768-dim)
+  // Encrypted with the file's AES key — server stores opaque blob
+  encryptedVector  String?   @db.Text
+  vectorizedAt     DateTime?
+  fileType         String?   // "pdf" | "text" | "docx" | "image" | "unknown"
 
   // Relation to User
   userId           String
@@ -52,7 +59,29 @@ model EncryptedFile {
 }
 
 // =========================================================
-// 3. NextAuth.js Standard Models (Required)
+// 3. AI Chat History
+// =========================================================
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String        @default("New Chat")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  role      String      // "user" | "assistant"
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+// =========================================================
+// 4. NextAuth.js Standard Models (Required)
 // =========================================================
 model Account {
   id                String  @id @default(cuid())

@@ -1,199 +1,278 @@
 'use client';
 
+/**
+ * app/onboard-keys/page.tsx
+ *
+ * Key Setup Flow (ZK-compliant):
+ * 1. User enters a strong passphrase (min 12 chars)
+ * 2. Browser generates RSA-OAEP 2048-bit key pair (Web Crypto API)
+ * 3. Browser encrypts private key with passphrase (PBKDF2 + AES-GCM)
+ * 4. Browser sends: public key (PEM SPKI) + encrypted private key envelope to server
+ * 5. Server stores both — it never sees the passphrase or plaintext private key
+ */
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { generateAsapKeyPair, encryptWithPassphrase } from '@/lib/client/client-crypto';
 import { completeKeySetup } from '@/app/actions/user';
-import { LockClosedIcon, ShieldCheckIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon, ShieldCheckIcon, CheckIcon, KeyIcon } from '@heroicons/react/24/outline';
+
+type Step = 1 | 2 | 3;
+
+const STEPS = [
+  { label: 'Set Passphrase' },
+  { label: 'Generating Keys' },
+  { label: 'Complete' },
+];
 
 export default function KeySetupPage() {
   const [passphrase, setPassphrase] = useState('');
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState(1);
-  const router = useRouter(); // Keep router for the initial redirect check
-  const { data: session, status } = useSession(); // Removed 'update' as it's no longer needed here
+  const [step, setStep] = useState<Step>(1);
+  const [generationLog, setGenerationLog] = useState<string[]>([]);
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     if (status === 'authenticated') {
       const hasKeys = (session?.user as any)?.hasEncryptionKeys;
-      if (hasKeys) {
-        router.push('/dashboard');
-      }
+      if (hasKeys) router.push('/dashboard');
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [session, status, router]);
 
-  if (status === 'loading' || (status === 'authenticated' && (session?.user as any)?.hasEncryptionKeys)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
+  const passphraseStrength = (): { label: string; color: string; width: string } => {
+    const len = passphrase.length;
+    const hasUpper = /[A-Z]/.test(passphrase);
+    const hasLower = /[a-z]/.test(passphrase);
+    const hasNum = /[0-9]/.test(passphrase);
+    const hasSpecial = /[^A-Za-z0-9]/.test(passphrase);
+    const score = [len >= 12, len >= 16, hasUpper, hasLower, hasNum, hasSpecial].filter(Boolean).length;
+
+    if (score <= 2) return { label: 'Weak', color: 'bg-red-500', width: 'w-1/4' };
+    if (score <= 4) return { label: 'Fair', color: 'bg-yellow-500', width: 'w-1/2' };
+    if (score <= 5) return { label: 'Strong', color: 'bg-green-500', width: 'w-3/4' };
+    return { label: 'Very Strong', color: 'bg-green-400', width: 'w-full' };
+  };
+
+  const addLog = (msg: string) => setGenerationLog((prev) => [...prev, msg]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
     if (passphrase !== confirmPassphrase) {
-      setError('Passphrases do not match');
+      setError('Passphrases do not match.');
       return;
     }
     if (passphrase.length < 12) {
-      setError('Passphrase must be at least 12 characters long');
+      setError('Passphrase must be at least 12 characters.');
       return;
     }
+
     setIsLoading(true);
     setStep(2);
+    setGenerationLog([]);
 
     try {
-      const { publicKey, privateKey } = generateAsapKeyPair();
-      const encryptedPrivateKey = encryptWithPassphrase(privateKey, passphrase);
+      // Step 1: Generate RSA key pair in browser
+      addLog('⏳ Generating RSA-OAEP 2048-bit key pair...');
+      const { publicKey, privateKey } = await generateAsapKeyPair();
+      addLog('✅ Key pair generated.');
+
+      // Step 2: Encrypt private key with passphrase (PBKDF2 + AES-GCM)
+      addLog('⏳ Encrypting private key with PBKDF2 + AES-GCM...');
+      const encryptedPrivateKey = await encryptWithPassphrase(privateKey, passphrase);
+      addLog('✅ Private key encrypted.');
+
+      // Step 3: Store on server (server never sees passphrase or plaintext private key)
+      addLog('⏳ Storing keys on server...');
       const result = await completeKeySetup(publicKey, encryptedPrivateKey);
 
       if (result.success) {
+        addLog('✅ Keys stored securely.');
         setStep(3);
-        
-        // --- THIS IS THE FIX ---
-        // We DON'T call await update().
-        // Instead, we show the success message for 2 seconds,
-        // then force a hard redirect to the *correct* next page.
-        // The hard refresh will fetch the new session on the next page.
         setTimeout(() => {
           window.location.href = '/mfa-setup';
-        }, 2000); // 2-second delay to show success
-
+        }, 2500);
       } else {
-        setError(result.message || 'Failed to setup encryption keys on the server.');
+        setError(result.message || 'Failed to store keys.');
         setStep(1);
       }
-    } catch (error: any) {
-      console.error("Key setup process failed:", error);
-      setError(`An unexpected error occurred: ${error.message}`);
+    } catch (err: any) {
+      console.error('[KeySetup] Error:', err);
+      setError(`Key generation failed: ${err.message}`);
       setStep(1);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- handleContinue function removed ---
+  if (status === 'loading' || (status === 'authenticated' && (session?.user as any)?.hasEncryptionKeys)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  const strength = passphrase ? passphraseStrength() : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full space-y-8">
+        {/* Header */}
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <LockClosedIcon className="w-8 h-8 text-black" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">Setup Your Encryption Keys</h2>
-          <p className="text-gray-300">This is the most important step to secure your files.</p>
+          <h2 className="text-3xl font-bold text-white mb-2">Setup Encryption Keys</h2>
+          <p className="text-gray-400">Your keys are generated and encrypted entirely in your browser.</p>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="flex items-center justify-center space-x-4 mb-8">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= 1 ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>1</div>
-          <div className={`w-16 h-1 ${step >= 2 ? 'bg-green-500' : 'bg-gray-700'}`}></div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= 2 ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>2</div>
-          <div className={`w-16 h-1 ${step >= 3 ? 'bg-green-500' : 'bg-gray-700'}`}></div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= 3 ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>3</div>
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-3">
+          {STEPS.map((s, i) => {
+            const stepNum = (i + 1) as Step;
+            const isActive = step === stepNum;
+            const isDone = step > stepNum;
+            return (
+              <div key={i} className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all
+                  ${isDone ? 'bg-green-500 text-white' : isActive ? 'bg-green-500/20 border-2 border-green-500 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+                  {isDone ? <CheckIcon className="w-4 h-4" /> : stepNum}
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`w-12 h-0.5 transition-all ${step > stepNum ? 'bg-green-500' : 'bg-gray-700'}`} />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Step 1: Passphrase Form */}
         {step === 1 && (
           <div className="dark-glass-neon p-8">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               {error && (
-                <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-center">
+                <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
+
               <div>
                 <label htmlFor="passphrase" className="block text-sm font-medium text-gray-300 mb-2">
                   Master Passphrase
                 </label>
                 <input
                   id="passphrase"
-                  name="passphrase"
                   type="password"
                   required
                   minLength={12}
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                   className="dark-glass-input"
-                  placeholder="Enter a strong passphrase (min 12)"
+                  placeholder="Enter a strong passphrase (min 12 chars)"
+                  autoComplete="new-password"
                 />
+                {/* Strength Meter */}
+                {strength && (
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-800 rounded-full h-1">
+                      <div className={`h-1 rounded-full transition-all duration-300 ${strength.color} ${strength.width}`} />
+                    </div>
+                    <p className={`text-xs mt-1 ${strength.color.replace('bg-', 'text-')}`}>
+                      {strength.label}
+                    </p>
+                  </div>
+                )}
               </div>
+
               <div>
                 <label htmlFor="confirmPassphrase" className="block text-sm font-medium text-gray-300 mb-2">
                   Confirm Passphrase
                 </label>
                 <input
                   id="confirmPassphrase"
-                  name="confirmPassphrase"
                   type="password"
                   required
                   value={confirmPassphrase}
                   onChange={(e) => setConfirmPassphrase(e.target.value)}
                   className="dark-glass-input"
                   placeholder="Confirm your passphrase"
+                  autoComplete="new-password"
                 />
+                {confirmPassphrase && passphrase !== confirmPassphrase && (
+                  <p className="text-xs text-red-400 mt-1">Passphrases do not match.</p>
+                )}
               </div>
+
               <button type="submit" disabled={isLoading} className="gradient-button">
-                {isLoading ? 'Processing...' : 'Generate Encryption Keys'}
+                Generate Encryption Keys
               </button>
             </form>
           </div>
         )}
 
-        {/* Step 2: Key Generation Loading State */}
+        {/* Step 2: Key Generation in Progress */}
         {step === 2 && (
           <div className="dark-glass-neon p-8 text-center">
-            <div className="animate-spin w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full mx-auto mb-6"></div>
+            <div className="animate-spin w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full mx-auto mb-6" />
             <h3 className="text-xl font-bold text-white mb-4">Generating Your Keys</h3>
-            <p className="text-gray-300 mb-6">Creating your key pair and encrypting your private key...</p>
-            <div className="space-y-2 text-sm text-gray-400 text-left">
-              <p>✓ Generating ASAP key pair...</p>
-              <p>✓ Encrypting private key with passphrase...</p>
-              <p>⏳ Storing keys securely...</p>
+            <div className="space-y-2 text-sm text-left mt-4">
+              {generationLog.map((log, i) => (
+                <p key={i} className={log.startsWith('✅') ? 'text-green-400' : 'text-gray-400'}>{log}</p>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Step 3: Success State */}
+        {/* Step 3: Success */}
         {step === 3 && (
           <div className="dark-glass-neon p-8 text-center">
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckIcon className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-4">Keys Generated Successfully!</h3>
-            <p className="text-gray-300 mb-8">
-              Your encryption keys have been created and stored securely.
-            </p>
-            {/* --- Updated this part --- */}
-            <p className="text-gray-400 animate-pulse">
-              Redirecting you to MFA setup...
-            </p>
-            {/* --- Button removed --- */}
+            <h3 className="text-xl font-bold text-white mb-2">Keys Generated!</h3>
+            <p className="text-gray-300 mb-2">Your RSA-2048 key pair has been created.</p>
+            <p className="text-gray-400 text-sm mb-6">Private key encrypted with PBKDF2 + AES-GCM.</p>
+            <div className="space-y-2 text-sm text-left mb-6">
+              {generationLog.map((log, i) => (
+                <p key={i} className="text-green-400">{log}</p>
+              ))}
+            </div>
+            <p className="text-gray-400 text-sm animate-pulse">Redirecting to MFA setup...</p>
           </div>
         )}
-        
-        {/* Security Notice Box */}
-        <div className="dark-glass-neon border border-yellow-500/50 p-6 mt-8">
-          <div className="flex items-start space-x-3">
-            <div className="shrink-0">
-              <ShieldCheckIcon className="w-8 h-8 text-yellow-400 mt-0.5" />
-            </div>
+
+        {/* Security Warning */}
+        <div className="dark-glass-neon border border-yellow-500/30 p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheckIcon className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-lg font-bold text-yellow-300">Important: Save Your Passphrase!</h3>
-              <p className="text-base text-gray-300 mt-2 font-semibold">
-                If you forget this, <span className='underline'>you will lose access to all your files</span>.
-                <br />
-                <span className="font-bold">We cannot recover or reset it.</span>
+              <h3 className="font-bold text-yellow-300 mb-1">⚠️ Save Your Passphrase!</h3>
+              <p className="text-sm text-gray-300">
+                If you forget your passphrase, <span className="underline font-semibold">you will permanently lose access to all your files</span>. We cannot recover or reset it — that's what makes this zero-knowledge.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Crypto Details */}
+        <div className="dark-glass-neon p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <KeyIcon className="w-4 h-4 text-gray-400" />
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Cryptographic Details</p>
+          </div>
+          <div className="space-y-1 text-xs text-gray-500">
+            <p>• Key pair: RSA-OAEP 2048-bit (Web Crypto API)</p>
+            <p>• Key derivation: PBKDF2 SHA-256 · 100,000 iterations</p>
+            <p>• Private key encryption: AES-GCM 256-bit</p>
+            <p>• All operations run in your browser — server never sees your passphrase</p>
           </div>
         </div>
       </div>

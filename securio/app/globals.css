@@ -1,75 +1,71 @@
+/* Tailwind v4 */
 @import "tailwindcss";
 
+/* =========================
+   Root Variables
+========================= */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0A191E;
+  --foreground: #EDEDED;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* =========================
+   Base Styles
+========================= */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  @apply text-gray-300;
 }
 
+/* =========================
+   Animations
+========================= */
 @keyframes gradient-animation {
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
 }
 
-body {
-
-  background-color: #0A191E;
-
-  @apply text-gray-300;
-  min-height: 100vh;
-}
-
+/* =========================
+   Glass Neon Card
+========================= */
 .dark-glass-neon {
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   background-color: rgba(10, 20, 20, 0.5);
   border: 1px solid rgba(0, 255, 170, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
   border-radius: 1rem;
-  /* 16px */
   transition: all 0.3s ease;
 }
 
 .dark-glass-neon:hover {
   border-color: rgba(0, 255, 170, 0.4);
-  box-shadow: 0 0 20px 0 rgba(0, 255, 170, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 170, 0.1);
   transform: translateY(-2px);
 }
 
+/* =========================
+   Input Field
+========================= */
 .dark-glass-input {
   @apply w-full p-3 bg-transparent border border-gray-600 rounded-lg;
   @apply text-white placeholder-gray-500;
-  @apply focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all;
+  @apply focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent;
+  @apply transition-all;
 }
 
+/* =========================
+   Buttons
+========================= */
 .gradient-button {
   @apply relative overflow-hidden;
   @apply bg-gradient-to-r from-green-400 to-teal-500 text-black;
@@ -84,13 +80,18 @@ body {
 }
 
 .gradient-button::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -150%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(110deg, transparent 40%, rgba(255, 255, 255, 0.25) 50%, transparent 60%);
+  background: linear-gradient(
+    110deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 60%
+  );
   transform: skewX(-25deg);
   transition: left 0.7s ease-in-out;
 }
@@ -102,6 +103,7 @@ body {
 .gradient-button-small {
   @apply bg-gradient-to-r from-green-500 to-teal-600 text-white;
   @apply px-4 py-2 rounded-md text-sm font-medium;
-  @apply hover:from-green-600 hover:to-teal-700 transition-all;
+  @apply hover:from-green-600 hover:to-teal-700;
+  @apply transition-all;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
 }

@@ -1,12 +1,15 @@
-import './globals.css'; // Import the stylesheet
-import AuthSessionProvider from '@/components/AuthSessionProvider'; 
-import { Inter } from 'next/font/google';
+import "./globals.css";
+import AuthSessionProvider from "@/components/AuthSessionProvider";
+import { Inter } from "next/font/google";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata = {
-  title: 'Securio - Hybrid Encrypted Cloud Storage',
-  description: 'Secure your files with client-side hybrid cryptography.',
+  title: "Securio - Hybrid Encrypted Cloud Storage",
+  description: "Secure your files with client-side hybrid cryptography.",
 };
 
 export default function RootLayout({
@@ -15,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}> 
+    <html lang="en" className={inter.className}>
+      <body>
         <AuthSessionProvider>
           {children}
         </AuthSessionProvider>
@@ -24,4 +27,3 @@ export default function RootLayout({
     </html>
   );
 }
-
