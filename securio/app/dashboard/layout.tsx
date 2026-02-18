@@ -8,7 +8,9 @@ import {
   ArchiveBoxIcon,
   ArrowUpTrayIcon,
   Cog6ToothIcon,
-  KeyIcon
+  KeyIcon,
+  MagnifyingGlassIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { usePathname } from 'next/navigation';
 
@@ -43,6 +45,12 @@ export default function DashboardLayout({
           </NavLink>
           <NavLink href="/dashboard/upload" icon={<ArrowUpTrayIcon className="w-5 h-5" />} active={pathname === '/dashboard/upload'}>
             Upload File
+          </NavLink>
+          <NavLink href="/dashboard/search" icon={<MagnifyingGlassIcon className="w-5 h-5" />} active={pathname === '/dashboard/search'}>
+            Search Vault
+          </NavLink>
+          <NavLink href="/dashboard/chat" icon={<SparklesIcon className="w-5 h-5" />} active={pathname === '/dashboard/chat'}>
+            AI Chat
           </NavLink>
           <NavLink href="/dashboard/settings" icon={<Cog6ToothIcon className="w-5 h-5" />} active={pathname === '/dashboard/settings'}>
             Settings

@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { uploadEncryptedFile } from '@/app/actions/file';
 import { getUserPublicKey } from '@/app/actions/user';
 import { generateAesKey, encryptFileWithAes, encryptAesKeyWithRsa } from '@/lib/client/client-crypto';
+import { extractText } from '@/lib/client/text-extractor';
 import Link from 'next/link';
 import { ArrowUpTrayIcon, DocumentCheckIcon, XCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
@@ -158,9 +159,31 @@ export default function UploadPage() {
 
       setProgress(85);
       const result = await uploadEncryptedFile(formData);
-      setProgress(100);
 
       if (result.success) {
+        // ── Step 6: Vectorize for semantic search (best-effort) ──────────────
+        setStatus('info', 'Indexing for search...');
+        try {
+          const { text, fileType } = await extractText(arrayBuffer, file.name, file.type);
+          if (text.trim().length > 0) {
+            await fetch('/api/vectorize', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fileId: result.fileId,
+                text,
+                fileName: file.name,
+                aesKeyHex,
+                fileType,
+              }),
+            });
+          }
+        } catch (vecErr) {
+          // Vectorization failure is non-fatal
+          console.warn('[Upload] Vectorization failed (non-fatal):', vecErr);
+        }
+
+        setProgress(100);
         setStatus('success', `${result.message} Redirecting to your files...`);
         setFile(null);
         setTimeout(() => router.push('/dashboard/files'), 1800);

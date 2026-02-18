@@ -8,7 +8,7 @@
  */
 
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { Document } from '@langchain/core/documents';
 
 // ---------------------------------------------------------------------------

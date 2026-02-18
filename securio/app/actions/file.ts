@@ -101,7 +101,7 @@ export async function uploadEncryptedFile(formData: FormData) {
     const cloudinaryPublicId = (uploadResult as UploadApiResponse).public_id;
 
     // Persist metadata — encryptedAesKey stored as-is (it's already RSA-wrapped)
-    await prisma.encryptedFile.create({
+    const createdFile = await prisma.encryptedFile.create({
       data: {
         fileName,
         fileSize: encryptedFile.size,
@@ -109,11 +109,12 @@ export async function uploadEncryptedFile(formData: FormData) {
         encryptedAesKey, // RSA-OAEP wrapped — server cannot decrypt this
         userId,
       },
+      select: { id: true },
     });
 
     revalidatePath("/dashboard/files");
 
-    return { success: true, message: `File '${fileName}' securely uploaded.` };
+    return { success: true, message: `File '${fileName}' securely uploaded.`, fileId: createdFile.id };
   } catch (error: any) {
     console.error("[uploadEncryptedFile] Error:", error);
     return { success: false, message: `Upload error: ${error.message || 'An unexpected error occurred.'}` };
