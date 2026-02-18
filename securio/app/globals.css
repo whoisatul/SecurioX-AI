@@ -26,15 +26,23 @@ body {
 }
 
 @keyframes gradient-animation {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 body {
- 
-  background-color: #0A191E; 
-  
+
+  background-color: #0A191E;
+
   @apply text-gray-300;
   min-height: 100vh;
 }
@@ -45,9 +53,11 @@ body {
   background-color: rgba(10, 20, 20, 0.5);
   border: 1px solid rgba(0, 255, 170, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 1rem; /* 16px */
+  border-radius: 1rem;
+  /* 16px */
   transition: all 0.3s ease;
 }
+
 .dark-glass-neon:hover {
   border-color: rgba(0, 255, 170, 0.4);
   box-shadow: 0 0 20px 0 rgba(0, 255, 170, 0.1);
@@ -67,6 +77,7 @@ body {
   @apply transition-all duration-300;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
 }
+
 .gradient-button:hover:not(:disabled) {
   @apply shadow-lg shadow-green-400/30;
   transform: translateY(-2px);
@@ -83,6 +94,7 @@ body {
   transform: skewX(-25deg);
   transition: left 0.7s ease-in-out;
 }
+
 .gradient-button:hover::before {
   left: 150%;
 }
@@ -93,4 +105,3 @@ body {
   @apply hover:from-green-600 hover:to-teal-700 transition-all;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
 }
-
