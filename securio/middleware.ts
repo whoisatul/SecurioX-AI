@@ -19,7 +19,7 @@ export const config = {
 };
 
 export default withAuth(
-  function middleware(req: NextRequestWithAuth) {
+  function middleware(req: NextRequestWithAuth) { 
     const token = req.nextauth.token;
     // Note: The token is guaranteed to exist here if the user passed the initial NextAuth check 
     const pathname = req.nextUrl.pathname;
