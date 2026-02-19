@@ -119,11 +119,14 @@ export async function searchVault(
 
     for (const file of indexedFiles) {
         try {
+            console.log('[searchVault] Decrypting vector for:', file.fileName);
             const aesKeyHex = await decryptAesKeyWithRsa(file.encryptedAesKey, privateKeyPem);
+            console.log('[searchVault] AES key decrypted, length:', aesKeyHex.length);
             const vector = await decryptServerVector(file.encryptedVector!, aesKeyHex);
+            console.log('[searchVault] Vector decrypted, dims:', vector.length);
             candidates.push({ id: file.id, vector });
-        } catch {
-            // Skip files that fail to decrypt
+        } catch (err: any) {
+            console.error('[searchVault] Failed to decrypt vector for:', file.fileName, err.message);
         }
     }
 

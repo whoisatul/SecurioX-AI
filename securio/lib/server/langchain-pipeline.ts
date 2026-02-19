@@ -1,11 +1,18 @@
 /**
  * lib/server/langchain-pipeline.ts
  *
- * Core LangChain.js server-side pipeline utilities.
- * Uses Google Gemini for embeddings (text-embedding-004, 768-dim).
+ * Server-only LangChain utilities for semantic search.
  *
- * SERVER-ONLY — never import this in client components.
- * Pure math/serialization utils live in lib/shared/vector-utils.ts.
+ * Models (as of 2025):
+ *   - Embeddings: gemini-embedding-001 (3072 dims)
+ *   - Chat: gemini-2.0-flash (in rag-chain.ts)
+ *
+ * Exports:
+ *   - embedDocuments(texts) → number[][]
+ *   - embedQuery(text) → number[]
+ *   - splitTextIntoChunks(text, metadata?)
+ *   - serializeVector(vector) → base64 string
+ *   - Re-exports shared utils (cosineSimilarity, etc.)
  */
 
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
@@ -13,78 +20,79 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { Document } from '@langchain/core/documents';
 
 // Re-export shared utils so callers only need one import
-export { cosineSimilarity, rankDocuments, scoreToPercent, deserializeVector } from '@/lib/shared/vector-utils';
+export {
+    cosineSimilarity,
+    rankDocuments,
+    scoreToPercent,
+    deserializeVector,
+} from '@/lib/shared/vector-utils';
 
 // ---------------------------------------------------------------------------
-// Embedding Model Singleton
+// Embedding model singleton
 // ---------------------------------------------------------------------------
 let embeddingModel: GoogleGenerativeAIEmbeddings | null = null;
 
-export function getEmbeddingModel(): GoogleGenerativeAIEmbeddings {
+function getEmbeddingModel(): GoogleGenerativeAIEmbeddings {
     if (!embeddingModel) {
+        const apiKey = process.env.GOOGLE_API_KEY;
+        if (!apiKey) throw new Error('GOOGLE_API_KEY env var is not set');
         embeddingModel = new GoogleGenerativeAIEmbeddings({
-            apiKey: process.env.GOOGLE_API_KEY!,
-            model: 'text-embedding-004', // 768-dim
+            apiKey,
+            model: 'gemini-embedding-001',  // 3072-dim, the only available embedding model
         });
     }
     return embeddingModel;
 }
 
 // ---------------------------------------------------------------------------
-// Text Splitting (lazy singleton — not initialized at import time)
+// Text splitter (lazy singleton)
 // ---------------------------------------------------------------------------
-let textSplitter: RecursiveCharacterTextSplitter | null = null;
+let splitter: RecursiveCharacterTextSplitter | null = null;
 
 function getTextSplitter(): RecursiveCharacterTextSplitter {
-    if (!textSplitter) {
-        textSplitter = new RecursiveCharacterTextSplitter({
+    if (!splitter) {
+        splitter = new RecursiveCharacterTextSplitter({
             chunkSize: 1000,
             chunkOverlap: 200,
-            separators: ['\n\n', '\n', '. ', ' ', ''],
         });
     }
-    return textSplitter;
+    return splitter;
 }
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
- * Splits text into overlapping chunks for better embedding coverage.
+ * Split text into overlapping chunks with optional metadata.
  */
 export async function splitTextIntoChunks(
     text: string,
-    metadata: Record<string, string> = {}
+    metadata?: Record<string, string>
 ): Promise<Document[]> {
-    return getTextSplitter().createDocuments([text], [metadata]);
+    const ts = getTextSplitter();
+    return ts.createDocuments([text], metadata ? [metadata] : undefined);
 }
-
-// ---------------------------------------------------------------------------
-// Embedding Generation
-// ---------------------------------------------------------------------------
-
-/** Embeds a single string. Returns a 768-dim float array. */
-export async function embedText(text: string): Promise<number[]> {
-    const [embedding] = await getEmbeddingModel().embedDocuments([text]);
-    return embedding;
-}
-
-/** Embeds a search query (query-optimized). Returns a 768-dim float array. */
-export async function embedQuery(query: string): Promise<number[]> {
-    return getEmbeddingModel().embedQuery(query);
-}
-
-/** Embeds multiple text chunks in a single batch call. */
-export async function embedDocuments(texts: string[]): Promise<number[][]> {
-    return getEmbeddingModel().embedDocuments(texts);
-}
-
-// ---------------------------------------------------------------------------
-// Vector Serialization — SERVER-ONLY (uses Node.js Buffer)
-// For browser deserialization use deserializeVector from lib/shared/vector-utils
-// ---------------------------------------------------------------------------
 
 /**
- * Serializes a number[] embedding to a compact Base64 string.
- * Node.js only — uses Buffer.from().
- * 768 floats × 4 bytes = 3072 bytes → ~4096 chars Base64.
+ * Embed multiple texts in one batch call.
+ * Returns array of 3072-dim vectors.
+ */
+export async function embedDocuments(texts: string[]): Promise<number[][]> {
+    const model = getEmbeddingModel();
+    return model.embedDocuments(texts);
+}
+
+/**
+ * Embed a single query string. Returns a 3072-dim vector.
+ */
+export async function embedQuery(text: string): Promise<number[]> {
+    const model = getEmbeddingModel();
+    return model.embedQuery(text);
+}
+
+/**
+ * Serialize a float vector to Base64 (server-only, uses Buffer).
  */
 export function serializeVector(vector: number[]): string {
     const f32 = new Float32Array(vector);

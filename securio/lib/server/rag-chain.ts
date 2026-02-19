@@ -1,41 +1,54 @@
 /**
  * lib/server/rag-chain.ts
  *
- * LangGraph RAG (Retrieval-Augmented Generation) chain.
- * Uses Gemini 1.5 Flash for streaming responses.
+ * LangChain RAG chain powered by Groq (Llama 3.3 70B).
  *
- * Architecture:
- *   formatContext → generateAnswer → parseOutput
- *
- * The client sends decrypted file excerpts as context.
- * The server never touches the encrypted files directly.
+ * - Chat/streaming: Groq (GROQ_API_KEY)
+ * - Embeddings: still Gemini (GOOGLE_API_KEY) — Groq doesn't have embedding models
  */
 
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatGroq } from '@langchain/groq';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 
 // ---------------------------------------------------------------------------
-// LLM Singleton
+// LLM Singletons (Groq — Llama 3.3 70B)
 // ---------------------------------------------------------------------------
-let llmInstance: ChatGoogleGenerativeAI | null = null;
+let streamingLlm: ChatGroq | null = null;
+let nonStreamingLlm: ChatGroq | null = null;
 
-function getLlm(streaming = false): ChatGoogleGenerativeAI {
-    if (!llmInstance || llmInstance.streaming !== streaming) {
-        llmInstance = new ChatGoogleGenerativeAI({
-            apiKey: process.env.GOOGLE_API_KEY!,
-            model: 'gemini-1.5-flash',
-            streaming,
-            temperature: 0.3, // Lower temp for factual RAG responses
-            maxOutputTokens: 2048,
-        });
+function getLlm(streaming: boolean): ChatGroq {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) throw new Error('GROQ_API_KEY env var is not set');
+
+    if (streaming) {
+        if (!streamingLlm) {
+            streamingLlm = new ChatGroq({
+                apiKey,
+                model: 'llama-3.3-70b-versatile',
+                streaming: true,
+                temperature: 0.3,
+                maxTokens: 2048,
+            });
+        }
+        return streamingLlm;
+    } else {
+        if (!nonStreamingLlm) {
+            nonStreamingLlm = new ChatGroq({
+                apiKey,
+                model: 'llama-3.3-70b-versatile',
+                streaming: false,
+                temperature: 0.3,
+                maxTokens: 256,
+            });
+        }
+        return nonStreamingLlm;
     }
-    return llmInstance;
 }
 
 // ---------------------------------------------------------------------------
-// RAG Prompt Template
+// RAG Prompt
 // ---------------------------------------------------------------------------
 const RAG_PROMPT = ChatPromptTemplate.fromMessages([
     [
@@ -53,50 +66,35 @@ CONTEXT FROM USER'S FILES:
 ]);
 
 // ---------------------------------------------------------------------------
-// RAG Chain (non-streaming, for simple responses)
-// ---------------------------------------------------------------------------
-export function buildRagChain(): RunnableSequence {
-    const llm = getLlm(false);
-    const outputParser = new StringOutputParser();
-
-    return RunnableSequence.from([
-        RAG_PROMPT,
-        llm,
-        outputParser,
-    ]);
-}
-
-// ---------------------------------------------------------------------------
 // Streaming RAG Chain
 // ---------------------------------------------------------------------------
 export function buildStreamingRagChain(): RunnableSequence {
     const llm = getLlm(true);
     const outputParser = new StringOutputParser();
+    return RunnableSequence.from([RAG_PROMPT, llm, outputParser]);
+}
 
-    return RunnableSequence.from([
-        RAG_PROMPT,
-        llm,
-        outputParser,
-    ]);
+// ---------------------------------------------------------------------------
+// Non-streaming RAG Chain
+// ---------------------------------------------------------------------------
+export function buildRagChain(): RunnableSequence {
+    const llm = getLlm(false);
+    const outputParser = new StringOutputParser();
+    return RunnableSequence.from([RAG_PROMPT, llm, outputParser]);
 }
 
 // ---------------------------------------------------------------------------
 // Context Formatter
 // ---------------------------------------------------------------------------
-
 export interface ContextDocument {
     fileName: string;
     excerpt: string;
     relevanceScore?: number;
 }
 
-/**
- * Formats retrieved document excerpts into a structured context string
- * for the RAG prompt.
- */
 export function formatContextForPrompt(docs: ContextDocument[]): string {
     if (docs.length === 0) {
-        return 'No relevant documents found in the vault.';
+        return 'No relevant documents found in the vault. Let the user know you could not find relevant files.';
     }
 
     return docs
@@ -112,21 +110,16 @@ export function formatContextForPrompt(docs: ContextDocument[]): string {
 // ---------------------------------------------------------------------------
 // Chat Title Generator
 // ---------------------------------------------------------------------------
-
-/**
- * Generates a short title for a chat session based on the first message.
- * Uses Gemini with a simple prompt — no RAG needed.
- */
 export async function generateChatTitle(firstMessage: string): Promise<string> {
     const llm = getLlm(false);
     const outputParser = new StringOutputParser();
 
     const titlePrompt = ChatPromptTemplate.fromMessages([
-        ['system', 'Generate a very short title (3-5 words max) for a chat that starts with this message. Return ONLY the title, no quotes or punctuation.'],
-        ['human', firstMessage],
+        ['system', 'Generate a very short title (3-5 words max) for this chat. Return ONLY the title, no quotes.'],
+        ['human', '{message}'],
     ]);
 
     const chain = RunnableSequence.from([titlePrompt, llm, outputParser]);
-    const title = await chain.invoke({ input: firstMessage });
+    const title = await chain.invoke({ message: firstMessage });
     return title.trim().slice(0, 60);
 }

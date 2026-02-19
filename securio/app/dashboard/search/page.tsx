@@ -21,6 +21,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { decryptWithPassphrase, decryptAesKeyWithRsa, decryptFileWithAes } from '@/lib/client/client-crypto';
 import { searchVault, type VaultFile, type SearchResult } from '@/lib/client/vector-client';
+import { extractText } from '@/lib/client/text-extractor';
 import { saveAs } from 'file-saver';
 import {
     MagnifyingGlassIcon,
@@ -69,6 +70,8 @@ export default function SearchPage() {
     const [isSearching, setIsSearching] = useState(false);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
+    const [isReindexing, setIsReindexing] = useState(false);
+    const [reindexProgress, setReindexProgress] = useState('');
     const privateKeyRef = useRef<string | null>(null);
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
@@ -133,6 +136,68 @@ export default function SearchPage() {
             setStatus('error', `Search failed: ${error.message}`);
         } finally {
             setIsSearching(false);
+        }
+    };
+
+    // Re-index ALL files (including ones with bad/stale vectors)
+    const handleReindex = async () => {
+        if (passphrase.length < 12) { setStatus('error', 'Enter your passphrase first.'); return; }
+        setIsReindexing(true);
+        setReindexProgress('');
+        try {
+            // Decrypt private key
+            const pkRes = await fetch('/api/user/encrypted-private-key');
+            const { encryptedPrivateKey } = await pkRes.json();
+            const privateKeyPem = await decryptWithPassphrase(encryptedPrivateKey, passphrase);
+            if (!privateKeyPem) { setStatus('error', 'Invalid passphrase.'); return; }
+
+            // Get ALL files (re-index everything to fix any bad vectors)
+            const vectorsRes = await fetch('/api/vectors');
+            const { files } = await vectorsRes.json() as { files: VaultFile[] };
+
+            if (files.length === 0) { setStatus('info', 'No files to index.'); return; }
+
+            let indexed = 0;
+            let failed = 0;
+            for (const file of files) {
+                setReindexProgress(`Indexing ${file.fileName} (${indexed + failed + 1}/${files.length})...`);
+                try {
+                    console.log('[Reindex] Processing:', file.fileName);
+                    const aesKeyHex = await decryptAesKeyWithRsa(file.encryptedAesKey, privateKeyPem);
+                    console.log('[Reindex] AES key decrypted, length:', aesKeyHex.length);
+                    const fileUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/${file.cloudinaryPublicId}`;
+                    const resp = await fetch(fileUrl);
+                    if (!resp.ok) { console.warn('[Reindex] Fetch failed:', resp.status); failed++; continue; }
+                    const payload = await resp.json();
+                    const encBase64: string = payload.file?.split(',')[1] ?? payload.file;
+                    const decrypted = await decryptFileWithAes(encBase64, aesKeyHex, payload.iv);
+                    const { text, fileType } = await extractText(decrypted, file.fileName);
+                    console.log('[Reindex] Text extracted:', text.length, 'chars, type:', fileType);
+                    if (!text.trim()) { console.warn('[Reindex] No text extracted for:', file.fileName); failed++; continue; }
+                    const vecRes = await fetch('/api/vectorize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fileId: file.id, text, fileName: file.fileName, aesKeyHex, fileType }),
+                    });
+                    if (!vecRes.ok) {
+                        console.error('[Reindex] Vectorize failed:', await vecRes.text());
+                        failed++;
+                        continue;
+                    }
+                    const vecData = await vecRes.json();
+                    console.log('[Reindex] ✅ Indexed:', file.fileName, vecData);
+                    indexed++;
+                } catch (e: any) {
+                    console.error(`[Reindex] Failed for ${file.fileName}:`, e.message);
+                    failed++;
+                }
+            }
+            setStatus('success', `Re-indexed ${indexed}/${files.length} files successfully.${failed > 0 ? ` ${failed} failed.` : ''} You can now search them.`);
+        } catch (error: any) {
+            setStatus('error', `Re-indexing failed: ${error.message}`);
+        } finally {
+            setIsReindexing(false);
+            setReindexProgress('');
         }
     };
 
@@ -233,11 +298,35 @@ export default function SearchPage() {
             {/* Status */}
             {statusMsg && (
                 <div className={`p-3 rounded-lg text-sm font-medium flex items-start gap-2 ${statusType === 'error' ? 'bg-red-900/50 text-red-300' :
-                        statusType === 'success' ? 'bg-green-900/50 text-green-300' :
-                            'bg-blue-900/50 text-blue-300'
+                    statusType === 'success' ? 'bg-green-900/50 text-green-300' :
+                        'bg-blue-900/50 text-blue-300'
                     }`}>
                     {statusType === 'error' && <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />}
-                    {statusMsg}
+                    <div className="flex-1">
+                        {statusMsg}
+                    </div>
+                </div>
+            )}
+
+            {/* Re-index button — always available */}
+            {passphrase.length >= 12 && (
+                <div className="dark-glass-neon p-4 flex items-center justify-between border border-yellow-500/20">
+                    <div>
+                        <p className="text-sm text-gray-300 font-medium">🔄 Re-index all files</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Rebuilds search vectors for all files using your passphrase. Fixes any missing or corrupted indexes.</p>
+                    </div>
+                    <button
+                        onClick={handleReindex}
+                        disabled={isReindexing}
+                        className="gradient-button-small flex items-center gap-1.5 flex-shrink-0 ml-4"
+                    >
+                        {isReindexing ? (
+                            <span className="flex items-center gap-2">
+                                <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                {reindexProgress || 'Indexing...'}
+                            </span>
+                        ) : 'Rebuild Index'}
+                    </button>
                 </div>
             )}
 

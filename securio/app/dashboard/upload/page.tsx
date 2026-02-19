@@ -115,35 +115,46 @@ export default function UploadPage() {
 
     try {
       // Step 1: Read file
+      console.time('[Upload] Step 1: Read file');
       setStatus('info', 'Reading file...');
       const arrayBuffer = await file.arrayBuffer();
+      console.timeEnd('[Upload] Step 1: Read file');
       setProgress(20);
 
       // Step 2: Generate AES key (browser)
+      console.time('[Upload] Step 2: Generate AES key');
       setStatus('info', 'Generating encryption key...');
       const aesKeyHex = generateAesKey();
+      console.timeEnd('[Upload] Step 2: Generate AES key');
       setProgress(30);
 
       // Step 3: Encrypt file with AES-GCM (browser)
+      console.time('[Upload] Step 3: Encrypt file');
       setStatus('info', 'Encrypting file in your browser...');
       const { fileCipher, iv } = await encryptFileWithAes(arrayBuffer, aesKeyHex);
+      console.timeEnd('[Upload] Step 3: Encrypt file');
       setProgress(50);
 
       // Step 4: Fetch user's RSA public key from server
+      console.time('[Upload] Step 4: Fetch public key');
       setStatus('info', 'Fetching your public key...');
       const pubKeyResult = await getUserPublicKey();
       if (!pubKeyResult.success || !pubKeyResult.publicKey) {
         setStatus('error', pubKeyResult.message || 'Failed to retrieve public key.');
         return;
       }
+      console.timeEnd('[Upload] Step 4: Fetch public key');
       setProgress(60);
 
-      // Step 5: Wrap AES key with RSA public key (browser) — ZK: server never sees plaintext AES key
+      // Step 5: Wrap AES key with RSA public key (browser)
+      console.time('[Upload] Step 5: Wrap AES key');
       setStatus('info', 'Wrapping encryption key...');
       const encryptedAesKey = await encryptAesKeyWithRsa(aesKeyHex, pubKeyResult.publicKey);
+      console.timeEnd('[Upload] Step 5: Wrap AES key');
       setProgress(70);
 
-      // Step 6: Build form data and upload
+      // Step 6: Build form data and upload to Cloudinary
+      console.time('[Upload] Step 6: Upload to server');
       setStatus('info', 'Uploading encrypted file...');
       const encryptedFileBlob = new File(
         [Buffer.from(fileCipher, 'base64')],
@@ -154,19 +165,26 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append("encryptedFile", encryptedFileBlob);
       formData.append("fileName", file.name);
-      formData.append("encryptedAesKey", encryptedAesKey); // RSA-wrapped — server stores as-is
+      formData.append("encryptedAesKey", encryptedAesKey);
       formData.append("iv", iv);
 
       setProgress(85);
       const result = await uploadEncryptedFile(formData);
+      console.timeEnd('[Upload] Step 6: Upload to server');
+      console.log('[Upload] Server result:', result);
 
       if (result.success) {
-        // ── Step 6: Vectorize for semantic search (best-effort) ──────────────
-        setStatus('info', 'Indexing for search...');
-        try {
-          const { text, fileType } = await extractText(arrayBuffer, file.name, file.type);
-          if (text.trim().length > 0) {
-            await fetch('/api/vectorize', {
+        // ── Step 7: Vectorize for search (hard 10s timeout) ────
+        // Uses Promise.race so it can NEVER hang longer than 10 seconds
+        if (result.fileId) {
+          setStatus('info', 'Indexing for search (max 10s)...');
+          console.time('[Upload] Step 7: Vectorize');
+
+          const vectorizeWithTimeout = async () => {
+            const { text, fileType } = await extractText(arrayBuffer, file.name, file.type);
+            console.log('[Upload] Extracted text length:', text.trim().length);
+            if (!text.trim()) return { skipped: true };
+            const res = await fetch('/api/vectorize', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -177,10 +195,20 @@ export default function UploadPage() {
                 fileType,
               }),
             });
+            return res.json();
+          };
+
+          const timeout = (ms: number) => new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Vectorization timed out after ${ms}ms`)), ms)
+          );
+
+          try {
+            const vecResult = await Promise.race([vectorizeWithTimeout(), timeout(10_000)]);
+            console.log('[Upload] Vectorize result:', vecResult);
+          } catch (vecErr: any) {
+            console.warn('[Upload] Vectorize skipped:', vecErr.message);
           }
-        } catch (vecErr) {
-          // Vectorization failure is non-fatal
-          console.warn('[Upload] Vectorization failed (non-fatal):', vecErr);
+          console.timeEnd('[Upload] Step 7: Vectorize');
         }
 
         setProgress(100);

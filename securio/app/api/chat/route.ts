@@ -3,13 +3,9 @@
  *
  * POST /api/chat
  *
- * LangGraph RAG chat endpoint with streaming.
- * Receives: { query, context[], sessionId? }
- *   - query: user's question
- *   - context: array of { fileName, excerpt } — decrypted client-side
- *   - sessionId: optional, for persistent chat history
- *
- * Returns: Server-Sent Events stream of the Gemini response.
+ * LangChain RAG chat endpoint with SSE streaming.
+ * Input:  { query, context[], sessionId? }
+ * Output: Server-Sent Events stream of Gemini response.
  *
  * The server never touches encrypted files — context is assembled by the client.
  */
@@ -17,15 +13,13 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/server/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/server/prisma';
 import {
     buildStreamingRagChain,
     formatContextForPrompt,
     generateChatTitle,
     type ContextDocument,
 } from '@/lib/server/rag-chain';
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -36,11 +30,7 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    let body: {
-        query: string;
-        context: ContextDocument[];
-        sessionId?: string;
-    };
+    let body: { query: string; context: ContextDocument[]; sessionId?: string };
 
     try {
         body = await req.json();
@@ -63,22 +53,34 @@ export async function POST(req: NextRequest) {
     // Ensure or create a chat session
     let activeSessionId = sessionId;
     if (!activeSessionId) {
-        const title = await generateChatTitle(query).catch(() => 'New Chat');
-        const newSession = await prisma.chatSession.create({
-            data: { userId: session.user.id, title },
-            select: { id: true },
-        });
-        activeSessionId = newSession.id;
+        try {
+            const title = await generateChatTitle(query).catch(() => 'New Chat');
+            const newSession = await prisma.chatSession.create({
+                data: { userId: session.user.id, title },
+                select: { id: true },
+            });
+            activeSessionId = newSession.id;
+        } catch (err: any) {
+            console.error('[/api/chat] Session creation error:', err.message);
+            // Fall through — we can still chat without a saved session
+            activeSessionId = 'temp-' + Date.now();
+        }
     }
 
-    // Save user message
-    await prisma.chatMessage.create({
-        data: {
-            role: 'user',
-            content: query,
-            sessionId: activeSessionId,
-        },
-    });
+    // Save user message (skip if temp session)
+    if (!activeSessionId.startsWith('temp-')) {
+        try {
+            await prisma.chatMessage.create({
+                data: {
+                    role: 'user',
+                    content: query,
+                    sessionId: activeSessionId,
+                },
+            });
+        } catch (err: any) {
+            console.warn('[/api/chat] Failed to save user message:', err.message);
+        }
+    }
 
     // Format context for the RAG prompt
     const formattedContext = formatContextForPrompt(context || []);
@@ -93,12 +95,13 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
         async start(controller) {
             try {
-                // Send session ID first so client can track the session
+                // Send session ID
                 controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({ type: 'session', sessionId: activeSessionId })}\n\n`)
                 );
 
                 // Stream the LLM response
+                console.log('[/api/chat] Starting stream for query:', query.slice(0, 50));
                 const streamResult = await chain.stream({
                     context: formattedContext,
                     question: query,
@@ -111,23 +114,34 @@ export async function POST(req: NextRequest) {
                     );
                 }
 
-                // Save assistant message after streaming completes
-                await prisma.chatMessage.create({
-                    data: {
-                        role: 'assistant',
-                        content: fullResponse,
-                        sessionId: activeSessionId!,
-                    },
-                });
+                // Save assistant message
+                if (!activeSessionId!.startsWith('temp-')) {
+                    try {
+                        await prisma.chatMessage.create({
+                            data: {
+                                role: 'assistant',
+                                content: fullResponse,
+                                sessionId: activeSessionId!,
+                            },
+                        });
+                    } catch (err: any) {
+                        console.warn('[/api/chat] Failed to save assistant message:', err.message);
+                    }
+                }
 
                 controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
                 );
                 controller.close();
             } catch (error: any) {
-                console.error('[/api/chat] Stream error:', error);
+                console.error('[/api/chat] Stream error:', error.message);
+                const errorMsg = error.message?.includes('429')
+                    ? 'Gemini API rate limit exceeded. Please wait a minute and try again.'
+                    : error.message?.includes('404')
+                        ? 'Gemini model not available. Check GOOGLE_API_KEY and model configuration.'
+                        : `Chat error: ${error.message}`;
                 controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`)
+                    encoder.encode(`data: ${JSON.stringify({ type: 'error', message: errorMsg })}\n\n`)
                 );
                 controller.close();
             }

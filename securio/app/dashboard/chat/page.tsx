@@ -103,43 +103,54 @@ export default function ChatPage() {
         try {
             // Step 1: Fetch all vectors and find relevant files
             setStatusMsg('Searching vault for relevant files...');
+            console.log('[Chat] Step 1: Fetching vectors...');
             const vectorsRes = await fetch('/api/vectors');
             if (!vectorsRes.ok) throw new Error('Failed to fetch vectors');
             const { files } = await vectorsRes.json() as { files: VaultFile[] };
+            console.log('[Chat] Files fetched:', files.length, '| with vectors:', files.filter(f => f.encryptedVector).length);
 
             // Step 2: Semantic search to find top-K relevant files
             let context: Array<{ fileName: string; excerpt: string; relevanceScore: number }> = [];
 
             const indexedFiles = files.filter(f => f.encryptedVector);
+            console.log('[Chat] Indexed files:', indexedFiles.map(f => f.fileName));
             if (indexedFiles.length > 0) {
                 setStatusMsg('Finding relevant files...');
+                console.log('[Chat] Step 2: Running searchVault...');
                 const searchResults = await searchVault(userMessage, files, privateKeyRef.current!, 3);
+                console.log('[Chat] Search results:', searchResults.length, searchResults.map(r => ({ name: r.fileName, score: r.score })));
 
                 // Step 3: Decrypt top-K files and extract text for context
                 setStatusMsg('Decrypting relevant files...');
                 for (const result of searchResults.slice(0, 3)) {
                     try {
+                        console.log('[Chat] Step 3: Decrypting file:', result.fileName);
                         const aesKeyHex = await decryptAesKeyWithRsa(result.encryptedAesKey, privateKeyRef.current!);
+                        console.log('[Chat] AES key decrypted, length:', aesKeyHex.length);
                         const fileUrl = `https://res.cloudinary.com/${CLOUD_NAME}/raw/upload/${result.cloudinaryPublicId}`;
+                        console.log('[Chat] Fetching file from:', fileUrl);
                         const response = await fetch(fileUrl);
-                        if (!response.ok) continue;
+                        if (!response.ok) { console.warn('[Chat] File fetch failed:', response.status); continue; }
                         const payload = await response.json();
+                        console.log('[Chat] Payload keys:', Object.keys(payload));
                         const encryptedBase64: string = payload.file?.split(',')[1] ?? payload.file;
                         const decryptedBuffer = await decryptFileWithAes(encryptedBase64, aesKeyHex, payload.iv);
                         const { text } = await extractText(decryptedBuffer, result.fileName);
+                        console.log('[Chat] Extracted text length:', text.trim().length, 'chars');
                         if (text.trim()) {
                             context.push({
                                 fileName: result.fileName,
-                                excerpt: text.slice(0, 2000), // Limit per-file context
+                                excerpt: text.slice(0, 2000),
                                 relevanceScore: result.score,
                             });
                         }
-                    } catch {
-                        // Skip files that fail
+                    } catch (fileErr: any) {
+                        console.error('[Chat] File processing failed:', result.fileName, fileErr.message);
                     }
                 }
             }
 
+            console.log('[Chat] Context items:', context.length, context.map(c => ({ file: c.fileName, chars: c.excerpt.length })));
             setStatusMsg('Generating answer...');
 
             // Step 4: Stream from /api/chat
@@ -298,8 +309,8 @@ export default function ChatPage() {
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === 'user'
-                                ? 'bg-green-500/20 text-white border border-green-500/30'
-                                : 'dark-glass-neon text-gray-200'
+                            ? 'bg-green-500/20 text-white border border-green-500/30'
+                            : 'dark-glass-neon text-gray-200'
                             }`}>
                             {msg.role === 'assistant' && (
                                 <div className="flex items-center gap-1.5 mb-2">
