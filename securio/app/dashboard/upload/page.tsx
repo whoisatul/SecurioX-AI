@@ -191,7 +191,6 @@ export default function UploadPage() {
                 fileId: result.fileId,
                 text,
                 fileName: file.name,
-                aesKeyHex,
                 fileType,
               }),
             });

@@ -3,29 +3,18 @@
  *
  * Server-only LangChain utilities for semantic search.
  *
- * Models (as of 2025):
+ * Models:
  *   - Embeddings: gemini-embedding-001 (3072 dims)
- *   - Chat: gemini-2.0-flash (in rag-chain.ts)
  *
  * Exports:
  *   - embedDocuments(texts) → number[][]
  *   - embedQuery(text) → number[]
  *   - splitTextIntoChunks(text, metadata?)
- *   - serializeVector(vector) → base64 string
- *   - Re-exports shared utils (cosineSimilarity, etc.)
  */
 
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { Document } from '@langchain/core/documents';
-
-// Re-export shared utils so callers only need one import
-export {
-    cosineSimilarity,
-    rankDocuments,
-    scoreToPercent,
-    deserializeVector,
-} from '@/lib/shared/vector-utils';
 
 // ---------------------------------------------------------------------------
 // Embedding model singleton
@@ -38,7 +27,7 @@ function getEmbeddingModel(): GoogleGenerativeAIEmbeddings {
         if (!apiKey) throw new Error('GOOGLE_API_KEY env var is not set');
         embeddingModel = new GoogleGenerativeAIEmbeddings({
             apiKey,
-            model: 'gemini-embedding-001',  // 3072-dim, the only available embedding model
+            model: 'gemini-embedding-001',  // 3072-dim
         });
     }
     return embeddingModel;
@@ -89,12 +78,4 @@ export async function embedDocuments(texts: string[]): Promise<number[][]> {
 export async function embedQuery(text: string): Promise<number[]> {
     const model = getEmbeddingModel();
     return model.embedQuery(text);
-}
-
-/**
- * Serialize a float vector to Base64 (server-only, uses Buffer).
- */
-export function serializeVector(vector: number[]): string {
-    const f32 = new Float32Array(vector);
-    return Buffer.from(f32.buffer).toString('base64');
 }
