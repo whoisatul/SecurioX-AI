@@ -11,9 +11,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/server/auth';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/server/prisma'; // shared singleton
 
 export async function GET() {
     const session = await getServerSession(authOptions);

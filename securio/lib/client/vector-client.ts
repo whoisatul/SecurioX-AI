@@ -11,7 +11,7 @@
 'use client';
 
 import { decryptAesKeyWithRsa, base64ToBuffer } from '@/lib/client/client-crypto';
-import { deserializeVector, cosineSimilarity, rankDocuments, scoreToPercent } from '@/lib/server/langchain-pipeline';
+import { deserializeVector, cosineSimilarity, rankDocuments, scoreToPercent } from '@/lib/shared/vector-utils';
 
 // ---------------------------------------------------------------------------
 // Server-encrypted vector decryption (client-side)
