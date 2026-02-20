@@ -50,6 +50,8 @@ model EncryptedFile {
   // Semantic search: AES-GCM encrypted Gemini embedding (768-dim)
   // Encrypted with the file's AES key — server stores opaque blob
   encryptedVector  String?   @db.Text
+
+
   vectorizedAt     DateTime?
   fileType         String?   // "pdf" | "text" | "docx" | "image" | "unknown"
 
