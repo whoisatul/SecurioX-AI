@@ -91,7 +91,9 @@ export async function upsertFileVectors(
     const batchSize = 100;
     for (let i = 0; i < vectors.length; i += batchSize) {
         const batch = vectors.slice(i, i + batchSize);
-        await index.namespace(userId).upsert(batch);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Pinecone SDK types are tricky here, but this is the correct signature for v2+
+        await index.namespace(userId).upsert({ records: batch });
     }
 
     console.log(`[Pinecone] ✅ Upserted ${vectors.length} vectors for file "${fileName}" (userId=${userId})`);

@@ -1,18 +1,3 @@
-/**
- * app/api/vectorize/route.ts
- *
- * POST /api/vectorize
- *
- * Receives plaintext text (extracted client-side) for a file.
- * Pipeline:
- *   1. Validate inputs (fileId, text)
- *   2. Verify file ownership
- *   3. Split text → LangChain RecursiveCharacterTextSplitter
- *   4. Embed chunks → Google Gemini (gemini-embedding-001, 3072-dim)
- *   5. Upsert chunk vectors + text into Pinecone
- *   6. Update vectorizedAt in PostgreSQL
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
