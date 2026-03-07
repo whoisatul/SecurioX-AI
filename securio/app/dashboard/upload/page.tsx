@@ -114,28 +114,24 @@ export default function UploadPage() {
     setProgress(10);
 
     try {
-      // Step 1: Read file
       console.time('[Upload] Step 1: Read file');
       setStatus('info', 'Reading file...');
       const arrayBuffer = await file.arrayBuffer();
       console.timeEnd('[Upload] Step 1: Read file');
       setProgress(20);
 
-      // Step 2: Generate AES key (browser)
       console.time('[Upload] Step 2: Generate AES key');
       setStatus('info', 'Generating encryption key...');
       const aesKeyHex = generateAesKey();
       console.timeEnd('[Upload] Step 2: Generate AES key');
       setProgress(30);
 
-      // Step 3: Encrypt file with AES-GCM (browser)
       console.time('[Upload] Step 3: Encrypt file');
       setStatus('info', 'Encrypting file in your browser...');
       const { fileCipher, iv } = await encryptFileWithAes(arrayBuffer, aesKeyHex);
       console.timeEnd('[Upload] Step 3: Encrypt file');
       setProgress(50);
 
-      // Step 4: Fetch user's RSA public key from server
       console.time('[Upload] Step 4: Fetch public key');
       setStatus('info', 'Fetching your public key...');
       const pubKeyResult = await getUserPublicKey();
@@ -146,14 +142,12 @@ export default function UploadPage() {
       console.timeEnd('[Upload] Step 4: Fetch public key');
       setProgress(60);
 
-      // Step 5: Wrap AES key with RSA public key (browser)
       console.time('[Upload] Step 5: Wrap AES key');
       setStatus('info', 'Wrapping encryption key...');
       const encryptedAesKey = await encryptAesKeyWithRsa(aesKeyHex, pubKeyResult.publicKey);
       console.timeEnd('[Upload] Step 5: Wrap AES key');
       setProgress(70);
 
-      // Step 6: Build form data and upload to Cloudinary
       console.time('[Upload] Step 6: Upload to server');
       setStatus('info', 'Uploading encrypted file...');
       const encryptedFileBlob = new File(
@@ -174,8 +168,6 @@ export default function UploadPage() {
       console.log('[Upload] Server result:', result);
 
       if (result.success) {
-        // ── Step 7: Vectorize for search (hard 10s timeout) ────
-        // Uses Promise.race so it can NEVER hang longer than 10 seconds
         if (result.fileId) {
           setStatus('info', 'Indexing for search (max 10s)...');
           console.time('[Upload] Step 7: Vectorize');
@@ -228,37 +220,37 @@ export default function UploadPage() {
 
   if (status === 'loading' || keysExist === null) {
     return (
-      <div className="dark-glass-neon p-8 text-center">
-        <div className="animate-spin w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full mx-auto" />
+      <div className="dark-glass-neon p-8 text-center max-w-2xl">
+        <div className="animate-spin w-8 h-8 border-[3px] border-green-500/30 border-t-green-500 rounded-full mx-auto" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-5 max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold text-white">Secure File Upload</h1>
-        <p className="text-gray-400 mt-1">Your file is encrypted in your browser before it ever leaves your device.</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Secure File Upload</h1>
+        <p className="text-gray-500 text-sm mt-1">Your file is encrypted in your browser before it ever leaves your device.</p>
       </div>
 
       {/* ZK Notice */}
-      <div className="dark-glass-neon p-4 flex items-start gap-3 border border-green-500/20">
-        <ShieldCheckIcon className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-gray-300">
-          <span className="font-semibold text-green-400">Zero-Knowledge:</span> AES-256-GCM encryption happens in your browser. Your AES key is wrapped with your RSA public key before upload. The server stores only ciphertext — it cannot decrypt your files.
+      <div className="dark-glass-neon p-4 flex items-start gap-3">
+        <ShieldCheckIcon className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-gray-400 leading-relaxed">
+          <span className="font-semibold text-green-400">Zero-Knowledge:</span> AES-256-GCM encryption happens in your browser. Your AES key is wrapped with your RSA public key before upload.
         </p>
       </div>
 
       {!keysExist ? (
-        <div className="dark-glass-neon p-6 border border-red-500/50">
-          <h3 className="font-bold text-lg text-red-300">Encryption Keys Not Set Up</h3>
-          <p className="mt-1 text-gray-300">You must set up your encryption keys before uploading files.</p>
-          <Link href="/onboard-keys" className="mt-3 inline-block text-green-400 hover:underline font-semibold">
+        <div className="dark-glass-neon p-5 border-red-500/20">
+          <h3 className="font-semibold text-sm text-white">Encryption Keys Not Set Up</h3>
+          <p className="mt-1 text-gray-400 text-sm">You must set up your encryption keys before uploading files.</p>
+          <Link href="/onboard-keys" className="mt-2 inline-block text-green-400 hover:text-green-300 text-sm font-medium transition-colors">
             Go to Key Setup →
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Drop Zone */}
           {!file && (
             <div
@@ -266,8 +258,8 @@ export default function UploadPage() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => document.getElementById('file-upload-input')?.click()}
-              className={`dark-glass-neon p-10 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all duration-300
-                ${isDragging ? 'border-green-400 bg-green-500/10 scale-[1.01]' : 'border-gray-600 hover:border-gray-400'}`}
+              className={`dark-glass-neon p-10 border-2 border-dashed !rounded-2xl text-center cursor-pointer transition-all duration-300
+                ${isDragging ? 'border-green-500/40 bg-green-500/[0.04]' : 'border-white/[0.08] hover:border-white/[0.15]'}`}
             >
               <input
                 type="file"
@@ -277,39 +269,39 @@ export default function UploadPage() {
                 id="file-upload-input"
                 className="hidden"
               />
-              <ArrowUpTrayIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-lg font-semibold text-white">Drag & Drop your file here</p>
-              <p className="mt-1 text-gray-400 text-sm">or <span className="text-green-400 font-medium">browse to select</span></p>
-              <p className="mt-3 text-xs text-gray-500">PDF, TXT, MD, DOC, DOCX, JPG, PNG, WEBP · Max 50 MB</p>
+              <ArrowUpTrayIcon className="w-10 h-10 mx-auto text-gray-600 mb-3" />
+              <p className="text-sm font-medium text-white">Drag & drop your file here</p>
+              <p className="mt-1 text-gray-500 text-xs">or <span className="text-green-400 font-medium">browse to select</span></p>
+              <p className="mt-3 text-[11px] text-gray-600">PDF, TXT, MD, DOC, DOCX, JPG, PNG, WEBP · Max 50 MB</p>
             </div>
           )}
 
           {/* File Staged */}
           {file && (
-            <div className="dark-glass-neon p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <DocumentCheckIcon className="w-10 h-10 text-green-400 flex-shrink-0" />
+            <div className="dark-glass-neon p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <DocumentCheckIcon className="w-8 h-8 text-green-400 flex-shrink-0" />
                 <div>
-                  <p className="text-base font-medium text-white">{file.name}</p>
-                  <p className="text-sm text-gray-400">{formatBytes(file.size)}</p>
+                  <p className="text-sm font-medium text-white">{file.name}</p>
+                  <p className="text-xs text-gray-500">{formatBytes(file.size)}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setFile(null)}
                 disabled={isLoading}
-                className="text-gray-500 hover:text-red-400 transition-colors"
+                className="text-gray-600 hover:text-red-400 transition-colors"
               >
-                <XCircleIcon className="w-7 h-7" />
+                <XCircleIcon className="w-6 h-6" />
               </button>
             </div>
           )}
 
           {/* Progress Bar */}
           {isLoading && progress > 0 && (
-            <div className="w-full bg-gray-800 rounded-full h-1.5">
+            <div className="w-full bg-white/[0.04] rounded-full h-1">
               <div
-                className="bg-gradient-to-r from-green-400 to-teal-500 h-1.5 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-green-500 to-emerald-500 h-1 rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -317,9 +309,9 @@ export default function UploadPage() {
 
           {/* Status Message */}
           {uploadStatus.message && (
-            <p className={`p-3 rounded-lg text-sm font-medium ${uploadStatus.type === 'success' ? 'bg-green-900/50 text-green-300' :
-              uploadStatus.type === 'error' ? 'bg-red-900/50 text-red-300' :
-                'bg-blue-900/50 text-blue-300'
+            <p className={`p-3 rounded-xl text-xs font-medium ${uploadStatus.type === 'success' ? 'bg-green-500/[0.08] text-green-400 border border-green-500/20' :
+              uploadStatus.type === 'error' ? 'bg-red-500/[0.08] text-red-400 border border-red-500/20' :
+                'bg-blue-500/[0.08] text-blue-400 border border-blue-500/20'
               }`}>
               {uploadStatus.message}
             </p>

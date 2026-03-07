@@ -72,7 +72,6 @@ export default function ChatPage() {
             let assistantContent = '';
             let filesUsed: string[] = [];
 
-            // Add empty assistant message for streaming
             setMessages(prev => [...prev, { role: 'assistant', content: '', filesUsed: [] }]);
 
             while (true) {
@@ -90,7 +89,6 @@ export default function ChatPage() {
                             setSessionId(data.sessionId);
                         } else if (data.type === 'context') {
                             filesUsed = data.filesUsed || [];
-                            // Update system info
                             setMessages(prev => {
                                 const updated = [...prev];
                                 const last = updated[updated.length - 1];
@@ -131,43 +129,43 @@ export default function ChatPage() {
     };
 
     if (status === 'loading') {
-        return <div className="dark-glass-neon p-8 text-center"><div className="animate-spin w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full mx-auto" /></div>;
+        return <div className="dark-glass-neon p-8 text-center max-w-3xl"><div className="animate-spin w-8 h-8 border-[3px] border-green-500/30 border-t-green-500 rounded-full mx-auto" /></div>;
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)] max-w-3xl">
+        <div className="flex flex-col h-[calc(100vh-4rem)] max-w-3xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <SparklesIcon className="w-6 h-6 text-green-400" />
+                    <h1 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
+                        <SparklesIcon className="w-5 h-5 text-green-400" />
                         AI Chat
                     </h1>
-                    <p className="text-gray-400 text-sm">Ask questions about your vault files — powered by Pinecone + Groq.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Ask questions about your vault files — powered by Pinecone + Groq.</p>
                 </div>
                 <button
                     onClick={() => router.push('/dashboard/search')}
-                    className="gradient-button-small flex items-center gap-1.5 text-sm"
+                    className="gradient-button-small flex items-center gap-1.5 text-xs"
                 >
                     Search Vault
                 </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">
                 {messages.length === 0 && (
                     <div className="dark-glass-neon p-8 text-center mt-8">
-                        <SparklesIcon className="w-12 h-12 text-green-400/50 mx-auto mb-3" />
-                        <h3 className="text-lg font-medium text-white mb-1">Ready to chat</h3>
-                        <p className="text-gray-500 text-sm">
-                            Ask anything about your uploaded files. The AI will automatically find relevant context from your vault.
+                        <SparklesIcon className="w-10 h-10 text-green-500/30 mx-auto mb-3" />
+                        <h3 className="text-sm font-medium text-white mb-1">Ready to chat</h3>
+                        <p className="text-gray-600 text-xs">
+                            Ask anything about your uploaded files. The AI will find relevant context from your vault.
                         </p>
                         <div className="flex flex-wrap gap-2 justify-center mt-4">
                             {['What files do I have?', 'Summarize my documents', 'Find my Aadhaar details'].map(q => (
                                 <button
                                     key={q}
                                     onClick={() => setInput(q)}
-                                    className="px-3 py-1.5 text-xs bg-gray-800/50 text-gray-400 rounded-full hover:bg-gray-700/50 hover:text-gray-300 transition"
+                                    className="px-3 py-1.5 text-[11px] bg-white/[0.03] border border-white/[0.06] text-gray-500 rounded-full hover:border-white/[0.1] hover:text-gray-400 transition-all"
                                 >
                                     {q}
                                 </button>
@@ -177,41 +175,41 @@ export default function ChatPage() {
                 )}
 
                 {messages.map((msg, i) => (
-                    <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role !== 'user' && (
-                            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                                <SparklesIcon className="w-4 h-4 text-green-400" />
+                            <div className="w-7 h-7 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                                <SparklesIcon className="w-3.5 h-3.5 text-green-400" />
                             </div>
                         )}
-                        <div className={`max-w-[80%] rounded-xl p-4 ${msg.role === 'user'
-                                ? 'bg-green-600/20 border border-green-500/30 text-white'
-                                : msg.role === 'system'
-                                    ? 'bg-red-900/30 border border-red-500/30 text-red-300'
-                                    : 'bg-gray-800/50 border border-gray-700/50 text-gray-200'
+                        <div className={`max-w-[80%] rounded-xl p-3.5 ${msg.role === 'user'
+                            ? 'bg-white/[0.06] border border-white/[0.08] text-white'
+                            : msg.role === 'system'
+                                ? 'bg-red-500/[0.06] border border-red-500/20 text-red-400'
+                                : 'bg-white/[0.02] border border-white/[0.06] text-gray-300'
                             }`}>
-                            {/* Show files used */}
+                            {/* Files used */}
                             {msg.filesUsed && msg.filesUsed.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mb-2">
                                     {[...new Set(msg.filesUsed)].map((f, j) => (
-                                        <span key={j} className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-400 text-xs rounded-full">
-                                            <DocumentTextIcon className="w-3 h-3" />
+                                        <span key={j} className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/[0.08] text-green-400 text-[10px] rounded-full border border-green-500/20">
+                                            <DocumentTextIcon className="w-2.5 h-2.5" />
                                             {f}
                                         </span>
                                     ))}
                                 </div>
                             )}
-                            <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                            <div className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                             {msg.role === 'assistant' && isLoading && i === messages.length - 1 && !msg.content && (
                                 <div className="flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" />
-                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" />
+                                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                                 </div>
                             )}
                         </div>
                         {msg.role === 'user' && (
-                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                <UserCircleIcon className="w-4 h-4 text-blue-400" />
+                            <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                                <UserCircleIcon className="w-3.5 h-3.5 text-gray-400" />
                             </div>
                         )}
                     </div>
@@ -220,7 +218,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className="flex gap-3">
+            <form onSubmit={handleSend} className="flex gap-2">
                 <input
                     type="text"
                     value={input}
@@ -233,10 +231,9 @@ export default function ChatPage() {
                 <button
                     type="submit"
                     disabled={isLoading || !input.trim()}
-                    className="gradient-button px-4 flex items-center gap-2"
+                    className="gradient-button !w-auto px-4 flex items-center gap-2"
                 >
                     <PaperAirplaneIcon className="w-4 h-4" />
-                    Send
                 </button>
             </form>
         </div>

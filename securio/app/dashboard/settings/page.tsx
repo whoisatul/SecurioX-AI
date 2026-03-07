@@ -1,100 +1,94 @@
-'use server'; // This page now needs to be a server component to get session
+'use server';
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/server/auth";
 import { redirect } from "next/navigation";
 
-// This is the file you showed in the screenshot
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
-  
-  // Custom properties from JWT/Session callback
+
   const isMfaEnabled = (session?.user as any)?.isMfaEnabled;
   const hasEncryptionKeys = (session?.user as any)?.hasEncryptionKeys;
 
-  // If user doesn't have encryption keys, redirect to setup
   if (!hasEncryptionKeys) {
     redirect('/onboard-keys');
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-bold text-white">Settings</h1>
-      <p className="text-lg text-gray-400">Manage your account and security settings.</p>
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
+        <p className="text-gray-500 text-sm mt-1">Manage your account and security.</p>
+      </div>
 
       {/* Security Settings */}
-      <div className="dark-glass-neon p-6">
-        <h2 className="text-2xl font-bold text-white mb-6">Security Settings</h2>
-        
-        <div className="space-y-6">
+      <div className="dark-glass-neon p-5">
+        <p className="text-xs font-medium text-gray-500 mb-4 uppercase tracking-wider">Security</p>
+
+        <div className="space-y-3">
           {/* Encryption Keys Card */}
-          <div className="dark-glass-neon p-4 flex items-center justify-between">
+          <div className="flex items-center justify-between py-3 border-b border-white/[0.04]">
             <div>
-              <h3 className="text-lg font-semibold text-white">Encryption Keys</h3>
-              {/* --- TEXT REPLACED --- */}
-              <p className="text-gray-400">Your ASAP-2048 key pair for file encryption</p>
+              <h3 className="text-sm font-medium text-white">Encryption Keys</h3>
+              <p className="text-xs text-gray-500 mt-0.5">RSA-2048 key pair for file encryption</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="inline-block px-3 py-1 rounded-full text-sm font-medium border bg-green-500/10 text-green-300 border-green-400/30">
-                Active
-              </span>
-            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border bg-green-500/[0.08] text-green-400 border-green-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              Active
+            </span>
           </div>
 
           {/* MFA Card */}
-          <div className="dark-glass-neon p-4 flex items-center justify-between">
+          <div className="flex items-center justify-between py-3">
             <div>
-              <h3 className="text-lg font-semibold text-white">Two-Factor Authentication</h3>
-              <p className="text-gray-400">Add an extra layer of security to your account</p>
+              <h3 className="text-sm font-medium text-white">Two-Factor Authentication</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Extra security layer for your account</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${
-                isMfaEnabled 
-                  ? 'bg-green-500/10 text-green-300 border-green-400/30' 
-                  : 'bg-orange-500/10 text-orange-300 border-orange-400/30'
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${isMfaEnabled
+                ? 'bg-green-500/[0.08] text-green-400 border-green-500/20'
+                : 'bg-orange-500/[0.08] text-orange-400 border-orange-500/20'
               }`}>
-                {isMfaEnabled ? 'Enabled' : 'Not Set Up'}
-              </span>
-            </div>
+              <div className={`w-1.5 h-1.5 rounded-full ${isMfaEnabled ? 'bg-green-400' : 'bg-orange-400'}`} />
+              {isMfaEnabled ? 'Enabled' : 'Not Set Up'}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Account Information */}
-      <div className="dark-glass-neon p-6">
-        <h2 className="text-2xl font-bold text-white mb-6">Account Information</h2>
-        
+      <div className="dark-glass-neon p-5">
+        <p className="text-xs font-medium text-gray-500 mb-4 uppercase tracking-wider">Account</p>
+
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
-            <input 
-              type="text" 
-              value={session?.user?.name || ''} 
+            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">Name</label>
+            <input
+              type="text"
+              value={session?.user?.name || ''}
               disabled
-              className="dark-glass-input bg-black/20 text-gray-400 cursor-not-allowed"
+              className="dark-glass-input opacity-60 cursor-not-allowed"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-            <input 
-              type="email" 
-              value={session?.user?.email || ''} 
+            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">Email</label>
+            <input
+              type="email"
+              value={session?.user?.email || ''}
               disabled
-              className="dark-glass-input bg-black/20 text-gray-400 cursor-not-allowed"
+              className="dark-glass-input opacity-60 cursor-not-allowed"
             />
           </div>
         </div>
       </div>
 
       {/* Hybrid Cryptography Info */}
-      <div className="dark-glass-neon border-green-400/30 p-6">
-        <h2 className="text-2xl font-bold text-green-300 mb-4">🔐 Hybrid Cryptography</h2>
-        <div className="space-y-3 text-gray-300">
-          <p><strong>Symmetric Encryption (AES-256):</strong> Each file is encrypted with a unique AES key for fast encryption/decryption.</p>
-          {/* --- TEXT REPLACED --- */}
-          <p><strong>Asymmetric Encryption (ASAP-2048):</strong> Your AES keys are encrypted with your ASAP public key for secure key exchange.</p>
-          <p><strong>Client-Side Encryption:</strong> All encryption happens in your browser before files reach our servers.</p>
-          <p><strong>Zero-Knowledge:</strong> We never have access to your private keys or file contents.</p>
+      <div className="dark-glass-neon p-5">
+        <p className="text-xs font-medium text-gray-500 mb-4 uppercase tracking-wider">Cryptography</p>
+        <div className="space-y-3 text-xs text-gray-400 leading-relaxed">
+          <p><span className="text-white font-medium">AES-256:</span> Each file is encrypted with a unique AES key for fast encryption/decryption.</p>
+          <p><span className="text-white font-medium">RSA-2048:</span> Your AES keys are encrypted with your RSA public key for secure key exchange.</p>
+          <p><span className="text-white font-medium">Client-Side:</span> All encryption happens in your browser before files reach our servers.</p>
+          <p><span className="text-white font-medium">Zero-Knowledge:</span> We never have access to your private keys or file contents.</p>
         </div>
       </div>
     </div>

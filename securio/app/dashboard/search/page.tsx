@@ -15,7 +15,6 @@ import {
     SparklesIcon,
     ShieldCheckIcon,
     DocumentIcon,
-    ArrowDownTrayIcon,
     ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 
@@ -50,10 +49,10 @@ function ScoreBar({ score }: { score: number }) {
     const color = score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-500';
     return (
         <div className="flex items-center gap-2">
-            <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="flex-1 h-1 bg-white/[0.04] rounded-full overflow-hidden">
                 <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${score}%` }} />
             </div>
-            <span className="text-xs text-gray-400 w-10 text-right">{score}%</span>
+            <span className="text-[10px] text-gray-500 w-8 text-right">{score}%</span>
         </div>
     );
 }
@@ -111,69 +110,69 @@ export default function SearchPage() {
     };
 
     if (status === 'loading') {
-        return <div className="dark-glass-neon p-8 text-center"><div className="animate-spin w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full mx-auto" /></div>;
+        return <div className="dark-glass-neon p-8 text-center max-w-3xl"><div className="animate-spin w-8 h-8 border-[3px] border-green-500/30 border-t-green-500 rounded-full mx-auto" /></div>;
     }
 
     return (
-        <div className="space-y-6 max-w-3xl">
+        <div className="space-y-5 max-w-3xl">
             <div className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Semantic Search</h1>
-                    <p className="text-gray-400 mt-1">Search your vault by meaning — powered by Gemini + Pinecone.</p>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Semantic Search</h1>
+                    <p className="text-gray-500 text-sm mt-1">Search your vault by meaning — powered by Gemini + Pinecone.</p>
                 </div>
                 <button
                     onClick={() => router.push('/dashboard/chat')}
                     className="gradient-button-small flex items-center gap-1.5"
                 >
-                    <SparklesIcon className="w-4 h-4" />
+                    <SparklesIcon className="w-3.5 h-3.5" />
                     AI Chat
                 </button>
             </div>
 
             {/* Info */}
-            <div className="dark-glass-neon p-4 flex items-start gap-3 border border-green-500/20">
-                <ShieldCheckIcon className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-300">
+            <div className="dark-glass-neon p-4 flex items-start gap-3">
+                <ShieldCheckIcon className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-400 leading-relaxed">
                     <span className="font-semibold text-green-400">How it works:</span> Your query is embedded by Gemini, then matched against your document vectors in Pinecone. Results are ranked by semantic similarity.
                 </p>
             </div>
 
             {/* Search Form */}
-            <form onSubmit={handleSearch} className="dark-glass-neon p-6 space-y-4">
+            <form onSubmit={handleSearch} className="dark-glass-neon p-5 space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Search Query</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">Search Query</label>
                     <div className="relative">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
                         <input
                             type="text"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             disabled={isSearching}
                             className="dark-glass-input pl-9"
-                            placeholder='e.g. "quarterly revenue" or "passport scan" or "tax documents"'
+                            placeholder='e.g. "quarterly revenue" or "passport scan"'
                         />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Finds semantically related content — not just exact keyword matches.</p>
+                    <p className="text-[10px] text-gray-600 mt-1.5">Finds semantically related content — not just exact keyword matches.</p>
                 </div>
                 <button type="submit" disabled={isSearching || !query.trim()} className="gradient-button">
                     {isSearching ? (
-                        <span className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <span className="flex items-center gap-2 justify-center">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             Searching...
                         </span>
                     ) : (
-                        <span className="flex items-center gap-2"><MagnifyingGlassIcon className="w-4 h-4" />Search Vault</span>
+                        <span className="flex items-center gap-2 justify-center"><MagnifyingGlassIcon className="w-4 h-4" />Search Vault</span>
                     )}
                 </button>
             </form>
 
             {/* Status */}
             {statusMsg && (
-                <div className={`p-3 rounded-lg text-sm font-medium flex items-start gap-2 ${statusType === 'error' ? 'bg-red-900/50 text-red-300' :
-                    statusType === 'success' ? 'bg-green-900/50 text-green-300' :
-                        'bg-blue-900/50 text-blue-300'
+                <div className={`p-3 rounded-xl text-xs font-medium flex items-start gap-2 border ${statusType === 'error' ? 'bg-red-500/[0.08] text-red-400 border-red-500/20' :
+                    statusType === 'success' ? 'bg-green-500/[0.08] text-green-400 border-green-500/20' :
+                        'bg-blue-500/[0.08] text-blue-400 border-blue-500/20'
                     }`}>
-                    {statusType === 'error' && <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                    {statusType === 'error' && <ExclamationTriangleIcon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />}
                     {statusMsg}
                 </div>
             )}
@@ -181,20 +180,20 @@ export default function SearchPage() {
             {/* Results */}
             {results.length > 0 && (
                 <div className="space-y-3">
-                    <h2 className="text-lg font-semibold text-white">Results</h2>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Results</p>
                     {results.map((file) => (
-                        <div key={file.fileId} className="dark-glass-neon p-5 hover:border-green-500/30 transition-all">
+                        <div key={file.fileId} className="dark-glass-neon p-4 hover:border-white/[0.1] transition-all">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                                    <span className="text-2xl flex-shrink-0">{getFileIcon(file.fileName)}</span>
+                                    <span className="text-xl flex-shrink-0">{getFileIcon(file.fileName)}</span>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-white truncate">{file.fileName}</p>
-                                        <p className="text-xs text-gray-500 mt-0.5">
+                                        <p className="text-sm font-medium text-white truncate">{file.fileName}</p>
+                                        <p className="text-[10px] text-gray-600 mt-0.5">
                                             {formatBytes(file.fileSize)} · {new Date(file.uploadDate).toLocaleDateString()}
                                         </p>
-                                        <div className="mt-2 max-w-[200px]"><ScoreBar score={file.score} /></div>
+                                        <div className="mt-2 max-w-[180px]"><ScoreBar score={file.score} /></div>
                                         {file.excerpts.length > 0 && (
-                                            <p className="text-xs text-gray-400 mt-2 line-clamp-2 italic">
+                                            <p className="text-[11px] text-gray-500 mt-2 line-clamp-2 italic">
                                                 &ldquo;{file.excerpts[0]}&rdquo;
                                             </p>
                                         )}
@@ -208,9 +207,9 @@ export default function SearchPage() {
 
             {hasSearched && results.length === 0 && statusType !== 'error' && (
                 <div className="dark-glass-neon p-10 text-center">
-                    <DocumentIcon className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400">No matching files found.</p>
-                    <p className="text-gray-500 text-sm mt-1">Try different keywords or upload more files.</p>
+                    <DocumentIcon className="w-10 h-10 text-gray-700 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No matching files found.</p>
+                    <p className="text-gray-600 text-xs mt-1">Try different keywords or upload more files.</p>
                 </div>
             )}
         </div>

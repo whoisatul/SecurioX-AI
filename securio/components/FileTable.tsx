@@ -77,11 +77,9 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
         setLoadingFileId(file.id);
         setStatus({ type: 'idle', message: '' });
 
-        // We'll hold the private key PEM in a local variable and zero it after use
         let privateKeyPem: string | null = null;
 
         try {
-            // ── Step 1: Decrypt private key from passphrase (browser only) ──────────
             setStatus({ type: 'info', message: 'Verifying passphrase...' });
             privateKeyPem = await decryptWithPassphrase(encryptedPrivateKey, passphrase);
 
@@ -90,7 +88,6 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
                 return;
             }
 
-            // ── Step 2: Fetch encrypted AES key from server (no crypto on server) ───
             setStatus({ type: 'info', message: 'Retrieving encrypted key...' });
             const keyResult = await getEncryptedAesKey(file.id);
 
@@ -99,7 +96,6 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
                 return;
             }
 
-            // ── Step 3: Decrypt AES key with RSA private key (browser only) ─────────
             setStatus({ type: 'info', message: 'Decrypting file key...' });
             let aesKeyHex: string;
             try {
@@ -109,7 +105,6 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
                 return;
             }
 
-            // ── Step 4: Fetch encrypted file from Cloudinary ─────────────────────────
             setStatus({ type: 'info', message: 'Downloading encrypted file...' });
             const fileUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/${file.cloudinaryPublicId}`;
             const response = await fetch(fileUrl);
@@ -120,7 +115,6 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
 
             const payload = await response.json();
 
-            // Support both old (CBC) and new (GCM) payload formats
             const encryptedFileBase64: string = payload.file?.split(',')[1] ?? payload.file;
             const iv: string = payload.iv;
 
@@ -128,7 +122,6 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
                 throw new Error('Malformed file payload from storage.');
             }
 
-            // ── Step 5: Decrypt file in browser (AES-GCM) ───────────────────────────
             setStatus({ type: 'info', message: 'Decrypting file...' });
             let decryptedBuffer: ArrayBuffer;
             try {
@@ -138,7 +131,6 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
                 return;
             }
 
-            // ── Step 6: Trigger browser download ────────────────────────────────────
             const mimeTypes: Record<string, string> = {
                 pdf: 'application/pdf',
                 txt: 'text/plain',
@@ -154,16 +146,13 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
             const blob = new Blob([decryptedBuffer], { type: mimeType });
             saveAs(blob, file.fileName);
 
-            setStatus({ type: 'success', message: `✅ '${file.fileName}' decrypted and downloaded successfully.` });
-            setPassphrase(''); // Clear passphrase from state after success
+            setStatus({ type: 'success', message: `'${file.fileName}' decrypted and downloaded.` });
+            setPassphrase('');
 
         } catch (error: any) {
             console.error('[FileTable] Decryption error:', error);
             setStatus({ type: 'error', message: `Error: ${error.message}` });
         } finally {
-            // ── Zero out key material from memory ────────────────────────────────────
-            // JS doesn't have guaranteed memory wiping, but clearing references
-            // allows GC to collect the sensitive strings sooner.
             privateKeyPem = null;
             setLoadingFileId(null);
         }
@@ -172,17 +161,17 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
     const isDecrypting = loadingFileId !== null;
 
     return (
-        <div className="space-y-6">
-            {/* Passphrase Input Card */}
-            <div className="dark-glass-neon p-6">
+        <div className="space-y-4">
+            {/* Passphrase Input */}
+            <div className="dark-glass-neon p-5">
                 <div className="flex items-center gap-2 mb-1">
-                    <LockOpenIcon className="w-5 h-5 text-green-400" />
-                    <label htmlFor="passphrase-input" className="font-semibold text-white">
+                    <LockOpenIcon className="w-4 h-4 text-green-400" />
+                    <label htmlFor="passphrase-input" className="text-sm font-medium text-white">
                         Master Passphrase
                     </label>
                 </div>
-                <p className="text-sm text-gray-400 mb-3">
-                    Your passphrase decrypts your private key locally — it never leaves your browser.
+                <p className="text-xs text-gray-500 mb-3">
+                    Decrypts your private key locally — never leaves your browser.
                 </p>
                 <input
                     id="passphrase-input"
@@ -198,19 +187,19 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
 
             {/* ZK Notice */}
             <div className="flex items-start gap-2 px-1">
-                <ShieldCheckIcon className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-gray-500">
-                    Zero-Knowledge: All decryption happens in your browser. The server never sees your private key or file contents.
+                <ShieldCheckIcon className="w-3.5 h-3.5 text-green-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-gray-600">
+                    Zero-Knowledge: All decryption happens in your browser. The server never sees your private key.
                 </p>
             </div>
 
             {/* Status Message */}
             {status.message && (
-                <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${status.type === 'success' ? 'bg-green-900/50 text-green-300' :
-                        status.type === 'error' ? 'bg-red-900/50 text-red-300' :
-                            'bg-blue-900/50 text-blue-300'
+                <div className={`p-3 rounded-xl text-xs font-medium flex items-center gap-2 border ${status.type === 'success' ? 'bg-green-500/[0.08] text-green-400 border-green-500/20' :
+                    status.type === 'error' ? 'bg-red-500/[0.08] text-red-400 border-red-500/20' :
+                        'bg-blue-500/[0.08] text-blue-400 border-blue-500/20'
                     }`}>
-                    {status.type === 'error' && <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />}
+                    {status.type === 'error' && <ExclamationTriangleIcon className="w-3.5 h-3.5 flex-shrink-0" />}
                     {status.message}
                 </div>
             )}
@@ -218,55 +207,55 @@ export default function FileTable({ files, encryptedPrivateKey }: FileTableProps
             {/* File Table */}
             <div className="dark-glass-neon overflow-hidden">
                 <table className="min-w-full">
-                    <thead className="bg-white/5 border-b border-white/10">
+                    <thead className="border-b border-white/[0.06]">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">File</th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Size</th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Uploaded</th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">File</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-white/[0.04]">
                         {files.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="px-6 py-12 text-center">
-                                    <DocumentIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-                                    <p className="text-gray-400">No files uploaded yet.</p>
-                                    <p className="text-gray-500 text-sm mt-1">Upload your first encrypted file to get started.</p>
+                                <td colSpan={4} className="px-5 py-12 text-center">
+                                    <DocumentIcon className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm">No files uploaded yet.</p>
+                                    <p className="text-gray-600 text-xs mt-1">Upload your first encrypted file to get started.</p>
                                 </td>
                             </tr>
                         )}
                         {files.map((file) => (
-                            <tr key={file.id} className="hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl">{getFileIcon(file.fileName)}</span>
+                            <tr key={file.id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-5 py-3.5">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="text-lg">{getFileIcon(file.fileName)}</span>
                                         <span className="text-sm font-medium text-white truncate max-w-[200px]">{file.fileName}</span>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">
+                                <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
                                     {formatBytes(file.fileSize)}
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">
+                                <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
                                     {new Date(file.uploadDate).toLocaleDateString('en-IN', {
                                         day: '2-digit', month: 'short', year: 'numeric'
                                     })}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <td className="px-5 py-3.5 whitespace-nowrap">
                                     <button
                                         onClick={() => handleDecrypt(file)}
                                         disabled={isDecrypting || passphrase.length < 12}
-                                        className="gradient-button-small flex items-center gap-1.5"
+                                        className="gradient-button-small flex items-center gap-1.5 text-xs"
                                     >
                                         {loadingFileId === file.id ? (
                                             <>
-                                                <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                 Decrypting...
                                             </>
                                         ) : (
                                             <>
                                                 <ArrowDownTrayIcon className="w-3.5 h-3.5" />
-                                                Decrypt & Download
+                                                Decrypt
                                             </>
                                         )}
                                     </button>
