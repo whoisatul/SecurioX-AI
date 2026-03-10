@@ -7,7 +7,8 @@ import { ShieldCheckIcon, KeyIcon, ClockIcon } from "@heroicons/react/24/outline
 const prisma = new PrismaClient();
 
 // --- Storage Donut Chart ---
-const StorageDonutChart = ({ percentage = 15 }: { percentage: number }) => {
+const StorageDonutChart = ({ current, max }: { current: number, max: number }) => {
+  const percentage = Math.min((current / max) * 100, 100);
   const sqSize = 100;
   const strokeWidth = 8;
   const radius = (sqSize - strokeWidth) / 2;
@@ -79,6 +80,22 @@ const StatusCard = ({ title, status, color, message }: { title: string, status: 
   );
 };
 
+// --- Helper for Time Ago ---
+function timeAgo(date: Date) {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + "y ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + "mo ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + "d ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + "h ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  return "Just now";
+}
+
 // --- Main Dashboard Page Component ---
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -87,12 +104,20 @@ export default async function DashboardPage() {
   const isMfaEnabled = (session?.user as any)?.isMfaEnabled;
   const hasEncryptionKeys = (session?.user as any)?.hasEncryptionKeys;
   let fileCount = 0;
+  let recentFiles: { fileName: string, uploadDate: Date }[] = [];
+
   if (hasEncryptionKeys) {
     try {
       fileCount = await prisma.encryptedFile.count({
         where: { userId: session.user.id },
       });
-    } catch (error) { console.error("Failed to fetch file count:", error); }
+      recentFiles = await prisma.encryptedFile.findMany({
+        where: { userId: session.user.id },
+        orderBy: { uploadDate: 'desc' },
+        take: 3,
+        select: { fileName: true, uploadDate: true }
+      });
+    } catch (error) { console.error("Failed to fetch file data:", error); }
   }
 
   return (
@@ -130,10 +155,10 @@ export default async function DashboardPage() {
           message={hasEncryptionKeys ? "Master keys generated and secured." : "Setup required for file features."}
         />
         <StatusCard
-          title="Two-Factor Auth"
+          title="Multi-Factor Auth"
           status={isMfaEnabled ? "Enabled" : "Disabled"}
           color={isMfaEnabled ? "green" : "orange"}
-          message={isMfaEnabled ? "Account secured with MFA." : "Recommended: Enable 2FA."}
+          message={isMfaEnabled ? "Account secured with MFA." : "Recommended: Enable MFA."}
         />
         <StatusCard
           title="Files Stored"
@@ -145,38 +170,47 @@ export default async function DashboardPage() {
 
       {/* Widgets Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Storage Usage */}
-        <div className="dark-glass-neon p-5 lg:col-span-1">
-          <p className="text-sm text-gray-500 mb-4">Storage Usage</p>
-          <div className="flex items-center gap-5">
-            <div className="w-20 h-20 flex-shrink-0">
-              <StorageDonutChart percentage={15} />
+        {/* Storage Usage (File Count) */}
+        <div className="dark-glass-neon p-5 lg:col-span-1 border-white/[0.04]">
+          <p className="text-sm font-medium text-gray-400 tracking-wide mb-4 uppercase">Storage Limit</p>
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 flex-shrink-0 relative">
+              <StorageDonutChart current={fileCount} max={100} />
             </div>
             <div>
-              <p className="text-xl font-semibold text-white">1.5 GB</p>
-              <p className="text-xs text-gray-500">of 10 GB used</p>
-              <button className="mt-2 text-xs text-green-400 hover:text-green-300 transition-colors">
-                Upgrade Plan →
-              </button>
+              <p className="text-2xl font-bold text-white tracking-tight">
+                {fileCount} <span className="text-gray-500 text-lg font-medium">/ 100</span>
+              </p>
+              <p className="text-sm text-gray-500 mt-1">files uploaded</p>
+              <Link href="/dashboard/files" className="text-xs text-green-400 hover:text-green-300 font-medium mt-3 transition-colors">
+                Your files →
+              </Link>
             </div>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="dark-glass-neon p-5 lg:col-span-2">
-          <p className="text-sm text-gray-500 mb-4">Recent Activity</p>
+        <div className="dark-glass-neon p-5 lg:col-span-2 border-white/[0.04]">
+          <p className="text-sm font-medium text-gray-400 tracking-wide mb-4 uppercase">Recent Activity</p>
           <div className="space-y-3">
-            {[
-              { text: 'Uploaded "viva_presentation.pdf"', time: '5m ago' },
-              { text: 'Logged in from a new device', time: '1h ago' },
-              { text: '2FA was successfully enabled', time: '1d ago' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
-                <ClockIcon className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                <p className="text-sm text-gray-400 flex-1">{item.text}</p>
-                <span className="text-[11px] text-gray-600">{item.time}</span>
+            {recentFiles.length > 0 ? (
+              recentFiles.map((file, i) => (
+                <div key={i} className="flex items-center gap-4 py-2 hover:bg-white/[0.02] rounded-lg transition-colors group px-2 -mx-2">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <ClockIcon className="w-4 h-4 text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">Uploaded &quot;{file.fileName}&quot;</p>
+                  </div>
+                  <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide bg-white/[0.04] px-2 py-1 rounded-md">{timeAgo(file.uploadDate)}</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-sm text-gray-500">No recent activity.</p>
+                <Link href="/dashboard/upload" className="text-xs text-green-400 hover:text-green-300 mt-2 inline-block">Upload a file →</Link>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

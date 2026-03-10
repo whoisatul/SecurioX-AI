@@ -54,9 +54,6 @@ export default function DashboardLayout({
           <NavLink href="/dashboard/settings" icon={<Cog6ToothIcon className="w-[18px] h-[18px]" />} active={pathname === '/dashboard/settings'}>
             Settings
           </NavLink>
-          <NavLink href="/onboard-keys" icon={<KeyIcon className="w-[18px] h-[18px]" />} active={pathname === '/onboard-keys'} className="text-yellow-500/70 hover:text-yellow-400">
-            Setup Keys
-          </NavLink>
         </nav>
 
         {/* Logout Button at the bottom */}

@@ -39,11 +39,19 @@ export default function KeySetupPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       const hasKeys = (session?.user as any)?.hasEncryptionKeys;
-      if (hasKeys) router.push('/dashboard');
+      const isMfaEnabled = (session?.user as any)?.isMfaEnabled;
+      // Only redirect automatically if they just landed on the page (step 1)
+      if (hasKeys && step === 1) {
+        if (!isMfaEnabled) {
+          router.push('/mfa-setup');
+        } else {
+          router.push('/dashboard');
+        }
+      }
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [session, status, router]);
+  }, [session, status, router, step]);
 
   const passphraseStrength = (): { label: string; color: string; width: string } => {
     const len = passphrase.length;
@@ -79,19 +87,19 @@ export default function KeySetupPage() {
     setGenerationLog([]);
 
     try {
-      addLog('⏳ Generating RSA-OAEP 2048-bit key pair...');
+      addLog('◦ Generating RSA-OAEP 2048-bit key pair...');
       const { publicKey, privateKey } = await generateAsapKeyPair();
-      addLog('✅ Key pair generated.');
+      addLog('• Key pair generated.');
 
-      addLog('⏳ Encrypting private key with PBKDF2 + AES-GCM...');
+      addLog('◦ Encrypting private key with PBKDF2 + AES-GCM...');
       const encryptedPrivateKey = await encryptWithPassphrase(privateKey, passphrase);
-      addLog('✅ Private key encrypted.');
+      addLog('• Private key encrypted.');
 
-      addLog('⏳ Storing keys on server...');
+      addLog('◦ Storing keys on server...');
       const result = await completeKeySetup(publicKey, encryptedPrivateKey);
 
       if (result.success) {
-        addLog('✅ Keys stored securely.');
+        addLog('• Keys stored securely.');
         setStep(3);
         setTimeout(() => {
           window.location.href = '/mfa-setup';
@@ -253,9 +261,9 @@ export default function KeySetupPage() {
         {/* Security Warning */}
         <div className="dark-glass-neon border-yellow-500/20 p-5">
           <div className="flex items-start gap-3">
-            <ShieldCheckIcon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <ShieldCheckIcon className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-yellow-400 text-sm mb-1">Save Your Passphrase</h3>
+              <h3 className="font-semibold text-green-500 text-sm mb-1">Save Your Passphrase</h3>
               <p className="text-xs text-gray-400 leading-relaxed">
                 If you forget your passphrase, <span className="underline font-medium text-gray-300">you will permanently lose access to all your files</span>. We cannot recover or reset it.
               </p>

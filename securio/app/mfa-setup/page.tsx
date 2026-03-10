@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'react-qr-code';
 import { startMfaSetup, completeMfaSetup } from '@/app/actions/mfa';
+import { ShieldCheckIcon, DevicePhoneMobileIcon, KeyIcon } from '@heroicons/react/24/outline';
 
 interface MfaState {
   uri: string;
@@ -75,39 +76,69 @@ export default function MfaSetupPage() {
       </div>
 
       <div className="relative w-full max-w-md px-4 animate-fade-in-up">
-        <div className="dark-glass-neon p-8 rounded-2xl">
-          {/* Header */}
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20">
-              <span className="text-white text-xl">🔑</span>
-            </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Enable Two-Factor</h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Add an extra layer of security with Google Authenticator or Authy.
-            </p>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-green-500/20">
+            <DevicePhoneMobileIcon className="w-7 h-7 text-white" />
           </div>
+          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Two-Factor Auth</h2>
+          <p className="text-gray-400 text-sm leading-relaxed max-w-[280px] mx-auto">
+            Protect your vault with an extra layer of security using an authenticator app.
+          </p>
+        </div>
 
+        <div className="dark-glass-neon p-8 rounded-3xl border-white/[0.04]">
           {!mfaState ? (
-            <button
-              onClick={handleStartSetup}
-              disabled={isLoading}
-              className="gradient-button"
-            >
-              {isLoading ? 'Starting Setup...' : 'Begin MFA Setup'}
-            </button>
-          ) : (
-            <div className="space-y-5">
-              <div className="flex justify-center p-5 rounded-xl bg-white">
-                <QRCode value={mfaState.uri} size={180} level="H" />
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto mb-6">
+                <ShieldCheckIcon className="w-8 h-8 text-green-400" />
               </div>
-              <div className="text-center">
-                <p className="text-xs text-gray-500 mb-1">Manual Key</p>
-                <p className="text-sm font-mono text-white bg-white/[0.04] px-3 py-2 rounded-lg break-all">{mfaState.secret}</p>
+              <h3 className="text-lg font-semibold text-white mb-2">Ready to secure your account?</h3>
+              <p className="text-sm text-gray-400 mb-8">You will need an app like Google Authenticator, Authy, or 1Password to scan the QR code.</p>
+              <button
+                onClick={handleStartSetup}
+                disabled={isLoading}
+                className="gradient-button w-full text-base font-semibold py-3.5"
+              >
+                {isLoading ? 'Preparing Setup...' : 'Begin Setup'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Step 1 */}
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-green-400">1</span>
+                  </div>
+                  <p className="text-sm font-medium text-white">Scan this QR code</p>
+                </div>
+
+                <div className="flex justify-center p-6 rounded-2xl bg-white shadow-2xl mx-auto w-fit ring-4 ring-white/5">
+                  <QRCode value={mfaState.uri} size={160} level="H" />
+                </div>
+
+                <div className="mt-5 text-center">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Or enter code manually</p>
+                  <div className="flex items-center justify-center gap-2 bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
+                    <KeyIcon className="w-4 h-4 text-gray-400" />
+                    <p className="text-sm font-mono text-gray-300 break-all">{mfaState.secret}</p>
+                  </div>
+                </div>
               </div>
 
-              <form onSubmit={handleVerifyCode} className="space-y-4">
-                <div>
-                  <label htmlFor="mfa-code" className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">Enter 6-digit Code</label>
+              <hr className="border-white/[0.04]" />
+
+              {/* Step 2 */}
+              <form onSubmit={handleVerifyCode} className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-green-400">2</span>
+                  </div>
+                  <p className="text-sm font-medium text-white">Verify the code</p>
+                </div>
+
+                <div className="space-y-4">
                   <input
                     id="mfa-code"
                     type="text"
@@ -115,22 +146,23 @@ export default function MfaSetupPage() {
                     onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').substring(0, 6))}
                     required
                     maxLength={6}
-                    className="dark-glass-input text-center text-lg tracking-[0.3em]"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-center text-2xl tracking-[0.4em] font-mono text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all placeholder:text-gray-600"
                     placeholder="000000"
+                    autoComplete="one-time-code"
                   />
+                  {message && (
+                    <p className={`text-center text-sm font-medium ${message.includes('Error') || message.includes('Invalid') ? 'text-red-400' : 'text-green-400'}`}>
+                      {message}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={isLoading || mfaCode.length !== 6}
+                    className="gradient-button w-full text-base font-semibold py-3.5 mt-2 disabled:opacity-50"
+                  >
+                    {isLoading ? 'Verifying...' : 'Verify & Finish Setup'}
+                  </button>
                 </div>
-                {message && (
-                  <p className={`text-center text-sm font-medium ${message.includes('Error') || message.includes('Invalid') ? 'text-red-400' : 'text-green-400'}`}>
-                    {message}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="gradient-button"
-                >
-                  {isLoading ? 'Verifying...' : 'Verify & Finish Setup'}
-                </button>
               </form>
             </div>
           )}

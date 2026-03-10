@@ -40,6 +40,7 @@ function LoginForm() {
         mfaCode: isMfaRequired ? mfaCode : undefined,
       });
 
+      console.log('SignIn Result:', result);
       setIsLoading(false);
 
       if (result?.error) {
@@ -85,9 +86,9 @@ function LoginForm() {
     <div className="relative w-full max-w-sm animate-fade-in-up">
       {/* Logo */}
       <Link href="/" className="flex items-center justify-center space-x-1 mb-4 group">
-          <Image src="/logo.png" alt="Logo" width={40} height={40} className="mt-1" />
-          <span className="text-2xl font-semibold text-white tracking-tight">SecurioX</span>
-        </Link>
+        <Image src="/logo.png" alt="Logo" width={40} height={40} className="mt-1" />
+        <span className="text-2xl font-semibold text-white tracking-tight">SecurioX</span>
+      </Link>
 
       {/* Card */}
       <div className="dark-glass-neon p-8 rounded-2xl">

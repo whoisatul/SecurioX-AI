@@ -26,7 +26,7 @@ function getLlm(streaming: boolean): ChatGroq {
         if (!streamingLlm) {
             streamingLlm = new ChatGroq({
                 apiKey,
-                model: 'llama-3.3-70b-versatile',
+                model: 'openai/gpt-oss-120b',
                 streaming: true,
                 temperature: 0.3,
                 maxTokens: 2048,

@@ -37,8 +37,10 @@ export const authOptions: NextAuthOptions = {
         const valid = await compare(credentials.password, user.password);
         if (!valid) throw new Error("InvalidPassword");
 
+        const isMfaCodeEmpty = !credentials.mfaCode || credentials.mfaCode === "undefined" || credentials.mfaCode.trim() === "";
+
         if (user.isMfaEnabled) {
-          if (!credentials.mfaCode) throw new Error("MfaRequired");
+          if (isMfaCodeEmpty) throw new Error("MfaRequired");
           if (!user.mfaSecret) throw new Error("MfaConfigError");
 
           const ok = verifyMfaCode(user.mfaSecret, credentials.mfaCode);

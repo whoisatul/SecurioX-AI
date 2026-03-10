@@ -71,6 +71,7 @@ export default function ChatPage() {
             const decoder = new TextDecoder();
             let assistantContent = '';
             let filesUsed: string[] = [];
+            let buffer = '';
 
             setMessages(prev => [...prev, { role: 'assistant', content: '', filesUsed: [] }]);
 
@@ -78,10 +79,15 @@ export default function ChatPage() {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const text = decoder.decode(value, { stream: true });
-                const lines = text.split('\n').filter(l => l.startsWith('data: '));
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+
+                // Keep the last incomplete line in the buffer
+                buffer = lines.pop() || '';
 
                 for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+
                     try {
                         const data = JSON.parse(line.slice(6));
 
@@ -161,7 +167,7 @@ export default function ChatPage() {
                             Ask anything about your uploaded files. The AI will find relevant context from your vault.
                         </p>
                         <div className="flex flex-wrap gap-2 justify-center mt-4">
-                            {['What files do I have?', 'Summarize my documents', 'Find my Aadhaar details'].map(q => (
+                            {['What files do I have?', 'Summarize my documents', 'Find my Doc details'].map(q => (
                                 <button
                                     key={q}
                                     onClick={() => setInput(q)}

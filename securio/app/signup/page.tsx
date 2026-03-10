@@ -52,17 +52,14 @@ export default function SignupPage() {
       });
 
       if (response.ok) {
-        const result = await signIn('credentials', {
+        // Let NextAuth handle the redirect to ensure cookies are set
+        // before the onboard-keys page loads
+        await signIn('credentials', {
           email: formData.email,
           password: formData.password,
-          redirect: false,
+          redirect: true,
+          callbackUrl: '/onboard-keys',
         });
-
-        if (result?.ok) {
-          router.push('/onboard-keys');
-        } else {
-          setError('Registration successful but login failed. Please log in.');
-        }
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Registration failed');
