@@ -22,7 +22,7 @@ function LoginForm() {
   useEffect(() => {
     const message = searchParams.get('message');
     if (message === 'SetupComplete') {
-      setSuccess('✅ Setup complete! Please log in to continue.');
+      setSuccess(' Setup complete! Please log in to continue.');
     }
   }, [searchParams]);
 
@@ -40,7 +40,6 @@ function LoginForm() {
         mfaCode: isMfaRequired ? mfaCode : undefined,
       });
 
-      console.log('SignIn Result:', result);
       setIsLoading(false);
 
       if (result?.error) {
@@ -85,10 +84,62 @@ function LoginForm() {
   return (
     <div className="relative w-full max-w-sm animate-fade-in-up">
       {/* Logo */}
-      <Link href="/" className="flex items-center justify-center space-x-1 mb-4 group">
-        <Image src="/logo.png" alt="Logo" width={40} height={40} className="mt-1" />
-        <span className="text-2xl font-semibold text-white tracking-tight">SecurioX</span>
-      </Link>
+     <Link href="/" className="flex items-center justify-center space-x-2 group mb-4">
+
+  {/* SVG Logo */}
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 64 64"
+    xmlns="http://www.w3.org/2000/svg"
+    className="transition-all duration-300 group-hover:scale-105"
+  >
+    <defs>
+      {/* Gradient */}
+      <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#4ADE80" />
+        <stop offset="100%" stopColor="#15803D" />
+      </linearGradient>
+
+      {/* Glow Filter */}
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    {/* Shield */}
+    <path
+      d="M32 4 L56 12 V28 C56 42 46 54 32 60 C18 54 8 42 8 28 V12 Z"
+      fill="url(#shieldGradient)"
+      filter="url(#glow)"
+      className="animate-pulse"
+    />
+
+    {/* Lock Body */}
+    <rect x="22" y="30" width="20" height="16" rx="3" fill="white" />
+
+    {/* Lock Top */}
+    <path
+      d="M26 30 V24 C26 20 29 18 32 18 C35 18 38 20 38 24 V30"
+      stroke="white"
+      strokeWidth="3"
+      fill="none"
+    />
+  </svg>
+
+  {/* Text */}
+  <h1 className="text-2xl font-semibold tracking-tight text-white">
+    Securio
+    <span className="text-green-400 font-bold drop-shadow-[0_0_8px_#4ade80] group-hover:drop-shadow-[0_0_12px_#4ade80] transition">
+      X
+    </span>
+  </h1>
+
+</Link>
 
       {/* Card */}
       <div className="dark-glass-neon p-8 rounded-2xl">

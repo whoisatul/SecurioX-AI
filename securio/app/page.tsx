@@ -29,10 +29,62 @@ export default async function Home() {
       {/* ─── NAVIGATION ─── */}
       <nav className="sticky top-0 z-50 glass-effect">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-1 group">
-            <Image src="/logo.png" alt="Logo" width={36} height={36} className="mt-1" />
-            <span className="text-xl font-semibold text-white tracking-tight">SecurioX</span>
-          </Link>
+          <Link href="/" className="flex items-center space-x-2 group">
+
+  {/* SVG Logo */}
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 64 64"
+    xmlns="http://www.w3.org/2000/svg"
+    className="transition-all duration-300 group-hover:scale-105"
+  >
+    <defs>
+      {/* Gradient */}
+      <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#4ADE80" />
+        <stop offset="100%" stopColor="#15803D" />
+      </linearGradient>
+
+      {/* Glow Filter */}
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    {/* Shield */}
+    <path
+      d="M32 4 L56 12 V28 C56 42 46 54 32 60 C18 54 8 42 8 28 V12 Z"
+      fill="url(#shieldGradient)"
+      filter="url(#glow)"
+      className="animate-pulse"
+    />
+
+    {/* Lock Body */}
+    <rect x="22" y="30" width="20" height="16" rx="3" fill="white" />
+
+    {/* Lock Top */}
+    <path
+      d="M26 30 V24 C26 20 29 18 32 18 C35 18 38 20 38 24 V30"
+      stroke="white"
+      strokeWidth="3"
+      fill="none"
+    />
+  </svg>
+
+  {/* Text */}
+  <h1 className="text-2xl font-semibold tracking-tight text-white">
+    Securio
+    <span className="text-green-400 font-bold drop-shadow-[0_0_8px_#4ade80] group-hover:drop-shadow-[0_0_12px_#4ade80] transition">
+      X
+    </span>
+  </h1>
+
+</Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">How It Works</a>
@@ -70,7 +122,7 @@ export default async function Home() {
             </div>
           </div>
 
-          <h1 className="text-7xl md:text-5xl lg:text-7xl font-bold text-white mb-8 leading-[0.95] tracking-tight animate-fade-in-up-delay-1">
+          <h1 className="text-7xl md:text-5xl lg:text-7xl sm:text-xl font-bold text-white mb-8 leading-[0.95] tracking-tight animate-fade-in-up-delay-1">
             Your files.
             <br />
             <span className="gradient-text">Encrypted. Searchable.</span>
@@ -201,7 +253,7 @@ export default async function Home() {
                     {/* User */}
                     <div className="flex justify-end">
                       <div className="bg-white/[0.06] border border-white/[0.08] px-3 py-2 rounded-xl rounded-tr-sm max-w-[85%]">
-                        <p className="text-xs text-white">What's my Aadhaar number?</p>
+                        <p className="text-xs text-white">What's my Account number?</p>
                       </div>
                     </div>
                     {/* Bot */}
@@ -211,9 +263,9 @@ export default async function Home() {
                       </div>
                       <div className="bg-white/[0.03] border border-white/[0.05] px-3 py-2 rounded-xl rounded-tl-sm">
                         <div className="flex gap-1 mb-1">
-                          <span className="text-[9px] px-1.5 py-0.5 bg-purple-500/10 text-purple-400 rounded border border-purple-500/15">📄 aadhaar_card.pdf</span>
+                          <span className="text-[9px] px-1.5 py-0.5 bg-purple-500/10 text-purple-400 rounded border border-purple-500/15">📄 bank_statement.pdf</span>
                         </div>
-                        <p className="text-xs text-gray-300">Based on your uploaded Aadhaar card, your number is XXXX XXXX 4523.</p>
+                        <p className="text-xs text-gray-300">Based on your uploaded docs, your Account number is XXXX XXXX 1234.</p>
                       </div>
                     </div>
                   </div>
@@ -399,7 +451,7 @@ export default async function Home() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-radial from-green-500/[0.1] to-transparent rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-5 tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-5 tracking-tight">
                 Ready to take control
                 <br />
                 of your data?
@@ -427,10 +479,62 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             {/* Brand */}
             <div className="md:col-span-2">
-              <Link href="/" className="flex items-center space-x-1 mb-4">
-                <Image src="/logo.png" alt="Logo" width={28} height={28} className="mt-0.5" />
-                <span className="text-lg font-semibold text-white tracking-tight">SecurioX</span>
-              </Link>
+              <Link href="/" className="flex items-center space-x-2 group mb-4">
+
+  {/* SVG Logo */}
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 64 64"
+    xmlns="http://www.w3.org/2000/svg"
+    className="transition-all duration-300 group-hover:scale-105"
+  >
+    <defs>
+      {/* Gradient */}
+      <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#4ADE80" />
+        <stop offset="100%" stopColor="#15803D" />
+      </linearGradient>
+
+      {/* Glow Filter */}
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    {/* Shield */}
+    <path
+      d="M32 4 L56 12 V28 C56 42 46 54 32 60 C18 54 8 42 8 28 V12 Z"
+      fill="url(#shieldGradient)"
+      filter="url(#glow)"
+      className="animate-pulse"
+    />
+
+    {/* Lock Body */}
+    <rect x="22" y="30" width="20" height="16" rx="3" fill="white" />
+
+    {/* Lock Top */}
+    <path
+      d="M26 30 V24 C26 20 29 18 32 18 C35 18 38 20 38 24 V30"
+      stroke="white"
+      strokeWidth="3"
+      fill="none"
+    />
+  </svg>
+
+  {/* Text */}
+  <h1 className="text-xl font-semibold tracking-tight text-white">
+    Securio
+    <span className="text-green-400 font-bold drop-shadow-[0_0_8px_#4ade80] group-hover:drop-shadow-[0_0_12px_#4ade80] transition">
+      X
+    </span>
+  </h1>
+
+</Link>
               <p className="text-gray-600 text-sm max-w-xs leading-relaxed mb-4">
                 The AI-powered encrypted vault. Upload, encrypt, search by meaning, and chat with
                 your documents — all with zero-knowledge privacy.
@@ -456,16 +560,16 @@ export default async function Home() {
               <h4 className="text-sm font-semibold text-white mb-4">Technology</h4>
               <ul className="space-y-2.5">
                 <li><span className="text-gray-500 text-sm">Hybrid Encryption</span></li>
-                <li><span className="text-gray-500 text-sm">Semantic Search</span></li>
-                <li><span className="text-gray-500 text-sm">AI Document Chat</span></li>
-                <li><span className="text-gray-500 text-sm">Zero-Knowledge</span></li>
+                <li><span className="text-gray-500 text-sm">AI Assistant</span></li>
+                <li><span className="text-gray-500 text-sm">Document Search</span></li>
+                <li><span className="text-gray-500 text-sm">Zero-Knowledge Architecture</span></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-white/[0.06] mt-10 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-700 text-xs">
-              © {new Date().getFullYear()} Securio. All rights reserved.
+              © {new Date().getFullYear()} Hrikshesh kumar. All rights reserved.
             </p>
             <p className="text-gray-700 text-xs">
               Built with zero-knowledge cryptography & AI
