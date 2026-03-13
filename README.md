@@ -1,6 +1,6 @@
 <h1 align="center"> SecurioX: Zero-Knowledge AI Document Vault </h1>
 The concept of secure cloud storage combined with AI-driven insights is often fragmented. You either surrender your data for AI capabilities, or you prioritize security at the exact cost of utility. In this repo, I will take you through Securiox, an end-to-end encrypted file management system with integrated Retrieval-Augmented Generation (RAG) that lets you securely chat with your private documents.
-<h3>Deployed link - </h3>
+<h3>Deployed link - [Link](https://securiox-ai.vercel.app)</h3>
 
 ## 🔍 Overview
 This project implements a **highly secure document vault and AI assistant** utilizing a modern Next.js ecosystem. The platform encrypts user files client-side using a hybrid approach of RSA and AES cryptography before uploading. It then dynamically extracts text to generate semantic vector embeddings, leveraging **LangChain**, **Pinecone**, and cutting-edge LLMs (like Google Gemini and Groq) for intelligent, context-aware chatting. 
