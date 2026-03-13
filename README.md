@@ -78,3 +78,4 @@ Given the rapid rise of data breaches and aggressive data scraping by AI entitie
 ---
 
 ⭐ If you find this architecture useful, consider starring the repository!
+Developed by **Hrikshesh Kumar** at **IIIT Vadodara** **
