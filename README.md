@@ -1,4 +1,4 @@
-<h1 align="center"> Securiox: Zero-Knowledge AI Document Vault </h1>
+<h1 align="center"> SecurioX: Zero-Knowledge AI Document Vault </h1>
 The concept of secure cloud storage combined with AI-driven insights is often fragmented. You either surrender your data for AI capabilities, or you prioritize security at the exact cost of utility. In this repo, I will take you through Securiox, an end-to-end encrypted file management system with integrated Retrieval-Augmented Generation (RAG) that lets you securely chat with your private documents.
 <h3>Deployed link - </h3>
 
