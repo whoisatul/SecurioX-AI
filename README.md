@@ -3,7 +3,7 @@ The concept of secure cloud storage combined with AI-driven insights is often fr
 <h3>Deployed link - https://securiox-ai.vercel.app
 
 ## 🔍 Overview
-This project implements a **highly secure document vault and AI assistant** utilizing a modern Next.js ecosystem. The platform encrypts user files client-side using a hybrid approach of RSA and AES cryptography before uploading. It then dynamically extracts text to generate semantic vector embeddings, leveraging **LangChain**, **Pinecone**, and cutting-edge LLMs (like Google Gemini and Groq) for intelligent, context-aware chatting. 
+This project implements a **highly secure document vault and AI assistant** utilizing a modern Next.js ecosystem. The platform encrypts user files client-side using a hybrid approach of RSA and AES cryptography before uploading. It then dynamically extracts text to generate semantic vector embeddings, leveraging **LangChain**, **Pinecone**, and cutting-edge LLMs (like Gpt-OSS-120b) for intelligent, context-aware chatting. 
 Securiox ensures that your data remains fundamentally yours, maintaining absolute privacy while offering true semantic document intelligence.
 <div align="center">
     <img src="/securio/public/securiox_system_design.svg" alt="Logo" width="800" height="800">
