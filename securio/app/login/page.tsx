@@ -71,7 +71,8 @@ function LoginForm() {
             }
         }
       } else if (result?.ok) {
-        router.push(callbackUrl);
+        // Force full page reload to bypass Next.js App Router cache of middleware redirects
+        window.location.href = callbackUrl;
       } else {
         setError('An unexpected issue occurred during login.');
       }
