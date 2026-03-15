@@ -52,14 +52,18 @@ export default function SignupPage() {
       });
 
       if (response.ok) {
-        // Let NextAuth handle the redirect to ensure cookies are set
-        // before the onboard-keys page loads
-        await signIn('credentials', {
+        // Let NextAuth handle the sign in but use manual redirect to bust Next.js App Router cache
+        const result = await signIn('credentials', {
           email: formData.email,
           password: formData.password,
-          redirect: true,
-          callbackUrl: '/onboard-keys',
+          redirect: false,
         });
+
+        if (result?.error) {
+           setError('Registration successful, but automatic login failed.');
+        } else if (result?.ok) {
+           window.location.href = '/onboard-keys';
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Registration failed');

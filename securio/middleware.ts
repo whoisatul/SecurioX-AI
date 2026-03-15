@@ -26,8 +26,8 @@ export default withAuth(
 
     // Check Custom Onboarding Steps (use optional chaining on token)
     // NOTE: This relies on the custom fields added in NextAuth.js JWT callback
-    const hasEncryptionKeys = (token as any)?.hasEncryptionKeys;
-    const isMfaEnabled = (token as any)?.isMfaEnabled;
+    const hasEncryptionKeys = token?.hasEncryptionKeys === true;
+    const isMfaEnabled = token?.isMfaEnabled === true;
 
     // A. User is authenticated, but hasn't set up encryption keys (MUST DO)
     if (!hasEncryptionKeys && pathname !== KEY_SETUP_PAGE) {
@@ -38,6 +38,7 @@ export default withAuth(
     }
 
     // B. User has keys but hasn't enabled MFA (ENFORCED)
+    // Only enforce MFA setup if they ALREADY have encryption keys, and MFA is NOT enabled
     if (hasEncryptionKeys && !isMfaEnabled && pathname !== MFA_SETUP_PAGE) {
       if (pathname.includes('/api/auth/signout')) return NextResponse.next();
       return NextResponse.redirect(new URL(MFA_SETUP_PAGE, req.url));
